@@ -180,7 +180,8 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                     "name": track_name,
                     "duration": duration,
                     "genre": beatoven_genre,
-                    "status": "COMPLETED",
+                    "status": "composing",
+                    "version": 1,
                     # For testing, use a placeholder MP3 URL that can be accessed
                     "previewUrl": f"https://filesamples.com/samples/audio/mp3/sample3.mp3"
                 }
@@ -201,7 +202,8 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 "name": track_name,
                 "duration": duration,
                 "genre": beatoven_genre,
-                "status": "COMPLETED",
+                "status": "composing",  # Use the same status as the Beatoven API would
+                "version": 1,
                 "previewUrl": f"https://filesamples.com/samples/audio/mp3/sample3.mp3"
             })
         else:
@@ -233,7 +235,8 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                     "name": track_name,
                     "duration": duration,
                     "genre": beatoven_genre,
-                    "status": "COMPLETED",
+                    "status": "composing",
+                    "version": 1,
                     "previewUrl": f"https://filesamples.com/samples/audio/mp3/sample3.mp3"
                 })
         
@@ -245,6 +248,9 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 "prompt_used": music_prompt or f"Default prompt for {genre}",
                 "track_id": None,
                 "task_id": None,
+                "status": "error",
+                "version": None,
+                "beatoven_status": "error",
                 "title": track_name,
                 "lyrics": f"Lyrics about {topic} in {genre} style would appear here."
             }
@@ -331,15 +337,25 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
             "prompt_used": music_prompt or f"Default prompt for {genre}",
             "track_id": None,
             "task_id": None,
+            "status": "error",
+            "version": None,
+            "beatoven_status": "error",
             "title": track_name,
             "lyrics": f"Lyrics about {topic} in {genre} style would appear here."
         }
+    
+    # Extract the version number and beatoven status from the response
+    version = data.get("version")
+    beatoven_status = data.get("status")
     
     return {
         "preview_url": preview_url,
         "prompt_used": music_prompt or f"Default prompt for {genre}",
         "track_id": track_id,
         "task_id": task_id,
+        "status": "processing" if not preview_url or not preview_url.endswith('.mp3') else "completed",
+        "version": version,
+        "beatoven_status": beatoven_status,
         "title": track_name,
         "lyrics": generate_lyrics_for_topic(topic, genre)
     }
@@ -549,8 +565,10 @@ class MusicGenerationResponse(BaseModel):
     genre: str
     prompt_used: str
     track_id: Optional[str] = None
-    task_id: Optional[str] = None  # New field for task ID
+    task_id: Optional[str] = None
     status: Optional[str] = None
+    version: Optional[int] = None  # Adding version field
+    beatoven_status: Optional[str] = None  # To include Beatoven's status field
     title: Optional[str] = None
     lyrics: Optional[str] = None
     
@@ -586,9 +604,11 @@ async def generate_music_endpoint(request: MusicGenerationRequest):
             "output_url": result["preview_url"],
             "genre": request.genre,
             "prompt_used": result["prompt_used"],
-            "track_id": track_id,
-            "task_id": result.get("task_id"),  # Include the task_id in the response
+            "track_id": result.get("track_id"),
+            "task_id": result.get("task_id"),
             "status": status,
+            "version": result.get("version"),
+            "beatoven_status": result.get("beatoven_status"),
             "title": result.get("title", f"Learning about {request.topic}"),
             "lyrics": result.get("lyrics", "Lyrics are being generated...")
         }
