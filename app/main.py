@@ -154,6 +154,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     # Get the track URL from Beatoven API
     preview_url = None
     track_id = None
+    task_id = None
     
     try:
         print(f"Creating track with Beatoven.ai: {genre} about {topic}")
@@ -170,10 +171,12 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         if is_test_mode:
             print("TEST MODE: Using mock Beatoven.ai response")
             mock_track_id = f"test-track-{genre}-{int(time.time())}"
+            mock_task_id = f"test-task-{genre}-{int(time.time())}"
             mock_response = {
                 "status": 200,
                 "json": lambda: {
                     "id": mock_track_id,
+                    "taskId": mock_task_id,
                     "name": track_name,
                     "duration": duration,
                     "genre": beatoven_genre,
@@ -194,6 +197,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
             
             response = MockResponse(200, {
                 "id": mock_track_id,
+                "taskId": mock_task_id,
                 "name": track_name,
                 "duration": duration,
                 "genre": beatoven_genre,
@@ -203,20 +207,29 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         else:
             try:
                 # Make the actual API request with explicit timeout
+                # First, create a track composition request
                 response = requests.post(
                     "https://api.beatoven.ai/v1/tracks",
                     headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}", "Content-Type": "application/json"},
                     json=payload,
                     timeout=10  # Add explicit timeout to avoid hanging request
                 )
+                
+                # If we get a successful response, we need to extract the task_id from the response
+                if response.status_code == 200 or response.status_code == 201:
+                    data = response.json()
+                    # The initial track creation should also provide a task_id
+                    task_id = data.get("taskId")
             except requests.exceptions.ConnectionError as conn_error:
                 # DNS resolution or connection issue - use fallback mode
                 print(f"Connection error to Beatoven API: {str(conn_error)}")
                 print("Falling back to test mode for this request")
                 is_test_mode = True
                 mock_track_id = f"fallback-track-{genre}-{int(time.time())}"
+                mock_task_id = f"fallback-task-{genre}-{int(time.time())}"
                 response = MockResponse(200, {
                     "id": mock_track_id,
+                    "taskId": mock_task_id,
                     "name": track_name,
                     "duration": duration,
                     "genre": beatoven_genre,
@@ -231,12 +244,16 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 "preview_url": f"https://placehold.co/400x100.mp3?text=AI+Music+{genre}+about+{topic}",
                 "prompt_used": music_prompt or f"Default prompt for {genre}",
                 "track_id": None,
+                "task_id": None,
                 "title": track_name,
                 "lyrics": f"Lyrics about {topic} in {genre} style would appear here."
             }
         
         data = response.json()
         track_id = data.get("id")
+        # Ensure we have the task_id (if we didn't get it previously)
+        if not task_id:
+            task_id = data.get("taskId")
         print(f"Track created with ID: {track_id}")
         
         # Check if we have a preview URL immediately (unlikely but possible)
@@ -310,6 +327,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
             "preview_url": f"https://placehold.co/400x100.mp3?text=AI+Music+{genre}+about+{topic}",
             "prompt_used": music_prompt or f"Default prompt for {genre}",
             "track_id": None,
+            "task_id": None,
             "title": track_name,
             "lyrics": f"Lyrics about {topic} in {genre} style would appear here."
         }
@@ -318,6 +336,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         "preview_url": preview_url,
         "prompt_used": music_prompt or f"Default prompt for {genre}",
         "track_id": track_id,
+        "task_id": task_id,
         "title": track_name,
         "lyrics": generate_lyrics_for_topic(topic, genre)
     }
@@ -407,6 +426,103 @@ async def health_check():
     """Health check endpoint for Render"""
     return {"status": "ok"}
 
+@app.get("/api/music/tasks/{task_id}")
+async def get_music_task(task_id: str):
+    """Get the status and results of a Beatoven.ai task"""
+    if not BEATOVEN_API_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Beatoven API key is required but not configured"
+        )
+    
+    # For testing purposes, we'll use mock responses when BEATOVEN_API_KEY is set to "TEST_MODE"
+    is_test_mode = BEATOVEN_API_KEY == "TEST_MODE"
+    
+    try:
+        # Handle test/fallback mode
+        if (is_test_mode and (task_id.startswith("test-task-") or task_id.startswith("fallback-task-"))):
+            print(f"TEST MODE: Using mock task status response for {task_id}")
+            
+            # Parse genre from task ID (if available)
+            parts = task_id.split("-")
+            genre = parts[2] if len(parts) > 2 else "unknown"
+            
+            # Mock response for testing
+            mock_task_data = {
+                "status": "composed",
+                "meta": {
+                    "project_id": f"mock-project-{int(time.time())}",
+                    "track_id": f"mock-track-{int(time.time())}",
+                    "track_url": "https://filesamples.com/samples/audio/mp3/sample3.mp3",
+                    "stems_url": {
+                        "bass": "https://filesamples.com/samples/audio/mp3/sample1.mp3",
+                        "chords": "https://filesamples.com/samples/audio/mp3/sample2.mp3",
+                        "melody": "https://filesamples.com/samples/audio/mp3/sample3.mp3",
+                        "percussion": "https://filesamples.com/samples/audio/mp3/sample4.mp3"
+                    }
+                }
+            }
+            
+            return {
+                "task_id": task_id,
+                "status": mock_task_data["status"],
+                "track_url": mock_task_data["meta"]["track_url"],
+                "stems": mock_task_data["meta"]["stems_url"],
+                "project_id": mock_task_data["meta"]["project_id"],
+                "track_id": mock_task_data["meta"]["track_id"]
+            }
+        
+        # Make an actual API call for real task IDs
+        try:
+            response = requests.get(
+                f"https://api.beatoven.ai/v1/tasks/{task_id}",
+                headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"},
+                timeout=10  # Add explicit timeout
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Failed to get task status: {response.text}"
+                )
+            
+            task_data = response.json()
+            
+            # Return a standardized response
+            return {
+                "task_id": task_id,
+                "status": task_data.get("status"),
+                "track_url": task_data.get("meta", {}).get("track_url"),
+                "stems": task_data.get("meta", {}).get("stems_url", {}),
+                "project_id": task_data.get("meta", {}).get("project_id"),
+                "track_id": task_data.get("meta", {}).get("track_id")
+            }
+            
+        except requests.exceptions.ConnectionError as conn_error:
+            # DNS resolution or connection issue - use fallback mode
+            print(f"Connection error to Beatoven API: {str(conn_error)}")
+            print("Falling back to test mode for this task")
+            
+            # Create a fallback task response
+            fallback_data = {
+                "task_id": task_id,
+                "status": "composed",
+                "track_url": "https://filesamples.com/samples/audio/mp3/sample3.mp3",
+                "stems": {
+                    "bass": "https://filesamples.com/samples/audio/mp3/sample1.mp3",
+                    "chords": "https://filesamples.com/samples/audio/mp3/sample2.mp3",
+                    "melody": "https://filesamples.com/samples/audio/mp3/sample3.mp3",
+                    "percussion": "https://filesamples.com/samples/audio/mp3/sample4.mp3"
+                },
+                "project_id": f"fallback-project-{int(time.time())}",
+                "track_id": f"fallback-track-{int(time.time())}"
+            }
+            
+            return fallback_data
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/models")
 async def list_models():
     """List available AI models"""
@@ -430,6 +546,7 @@ class MusicGenerationResponse(BaseModel):
     genre: str
     prompt_used: str
     track_id: Optional[str] = None
+    task_id: Optional[str] = None  # New field for task ID
     status: Optional[str] = None
     title: Optional[str] = None
     lyrics: Optional[str] = None
@@ -467,6 +584,7 @@ async def generate_music_endpoint(request: MusicGenerationRequest):
             "genre": request.genre,
             "prompt_used": result["prompt_used"],
             "track_id": track_id,
+            "task_id": result.get("task_id"),  # Include the task_id in the response
             "status": status,
             "title": result.get("title", f"Learning about {request.topic}"),
             "lyrics": result.get("lyrics", "Lyrics are being generated...")
