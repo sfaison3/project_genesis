@@ -122,7 +122,11 @@
                 class="expand-btn"
                 @click="lyricsExpanded = !lyricsExpanded"
               >
-                <i :class="lyricsExpanded ? 'icon-collapse' : 'icon-expand'"></i>
+                <img 
+                  :src="lyricsExpanded ? icons.collapse : icons.expand" 
+                  :alt="lyricsExpanded ? 'Collapse' : 'Expand'" 
+                  class="expand-icon"
+                />
               </button>
             </div>
             <div 
@@ -146,23 +150,33 @@
           
           <div class="player-controls">
             <div class="control-buttons">
-              <button class="control-btn" aria-label="Shuffle"><i class="icon-shuffle"></i></button>
-              <button class="control-btn" @click="skipBackward" aria-label="Previous"><i class="icon-prev"></i></button>
+              <button class="control-btn" aria-label="Shuffle">
+                <img :src="icons.shuffle" alt="Shuffle" class="control-icon" />
+              </button>
+              <button class="control-btn" @click="skipBackward" aria-label="Previous">
+                <img :src="icons.previous" alt="Previous" class="control-icon" />
+              </button>
               <button 
                 class="control-btn play-btn"
                 @click="togglePlayback"
                 aria-label="Play or Pause"
               >
-                <i :class="isPlaying ? 'icon-pause' : 'icon-play'"></i>
+                <img 
+                  :src="isPlaying ? icons.pause : icons.play" 
+                  :alt="isPlaying ? 'Pause' : 'Play'" 
+                  class="control-icon play-icon"
+                />
               </button>
-              <button class="control-btn" @click="skipForward" aria-label="Next"><i class="icon-next"></i></button>
+              <button class="control-btn" @click="skipForward" aria-label="Next">
+                <img :src="icons.next" alt="Next" class="control-icon" />
+              </button>
               <button 
                 class="control-btn"
                 :class="{ 'active': isLooping }"
                 @click="toggleLoop"
                 aria-label="Repeat"
               >
-                <i class="icon-repeat"></i>
+                <img :src="icons.repeat" alt="Repeat" class="control-icon" />
               </button>
             </div>
             <div class="progress-bar">
@@ -191,6 +205,16 @@ import FileUpload from './components/FileUpload.vue'
 import config from './config'
 import albumArtImage from './assets/album-art.svg'
 
+// Import player control icons
+import shuffleIcon from './assets/icons/shuffle.svg'
+import previousIcon from './assets/icons/previous.svg'
+import playIcon from './assets/icons/play.svg'
+import pauseIcon from './assets/icons/pause.svg'
+import nextIcon from './assets/icons/next.svg'
+import repeatIcon from './assets/icons/repeat.svg'
+import expandIcon from './assets/icons/expand.svg'
+import collapseIcon from './assets/icons/collapse.svg'
+
 export default {
   components: {
     FileUpload
@@ -216,6 +240,17 @@ export default {
       currentAudioTime: 0, // in seconds
       isLooping: false,
       albumArt: albumArtImage,
+      // Player control icons
+      icons: {
+        shuffle: shuffleIcon,
+        previous: previousIcon,
+        play: playIcon,
+        pause: pauseIcon,
+        next: nextIcon,
+        repeat: repeatIcon,
+        expand: expandIcon,
+        collapse: collapseIcon
+      },
       // Available genres
       genres: [
         { id: 'country', name: 'Country' },
@@ -752,6 +787,10 @@ body {
   justify-content: center;
 }
 
+.play-btn img {
+  filter: brightness(0) invert(1); /* Make the icon white */
+}
+
 .song-info {
   flex: 1;
 }
@@ -872,19 +911,31 @@ body {
   }
 }
 
-/* Icon placeholders - would be replaced with actual icons */
-.icon-shuffle:after { content: "⤨"; }
-.icon-play:after { content: "▶"; }
-.icon-pause:after { content: "⏸"; }
-.icon-prev:after { content: "◀◀"; }
-.icon-next:after { content: "▶▶"; }
-.icon-repeat:after { content: "🔁"; }
-.icon-expand:after { content: "▼"; }
-.icon-collapse:after { content: "▲"; }
+/* Player control icons */
+.control-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.play-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.expand-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
 
 /* Active state for control buttons */
 .control-btn.active {
   color: #8C1D40; /* ASU maroon */
+}
+
+.control-btn.active img {
+  filter: invert(11%) sepia(79%) saturate(4223%) hue-rotate(334deg) brightness(93%) contrast(93%); /* Make icon ASU maroon */
 }
 
 /* Placeholder text styling */
