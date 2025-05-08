@@ -1,0 +1,84 @@
+# CLAUDE.rules
+# Ruleset for Claude AI interaction for project: Genesis
+# Author: Shawn Faison
+# Contributors: Steven Lee, Adam Drier, Lucien Kahn
+
+# ========================
+# GENERAL RULES
+# ========================
+
+[GENERAL]
+ALLOW_ALL_INPUTS = TRUE
+MAX_INPUT_TOKENS = 4000
+MAX_OUTPUT_TOKENS = 2000
+ENABLE_LOGGING = TRUE
+LOG_SENSITIVE_DATA = FALSE
+
+# ========================
+# FILTERS
+# ========================
+
+[FILTERS]
+BLOCK_TOPICS = ["self-harm", "illegal activity", "violence", "explicit sexual content"]
+BLOCK_KEYWORDS = ["hack", "bomb", "murder"]
+SAFE_MODE = STRICT
+
+# ========================
+# OUTPUT FORMATTING
+# ========================
+
+[OUTPUT]
+PREFIX = "[GENESIS AI]"
+SUFFIX = ""
+INCLUDE_TIMESTAMP = FALSE
+FORMAT_STYLE = "markdown"
+ALLOW_EMOJI = TRUE
+
+# ========================
+# MODEL SELECTION
+# ========================
+
+[MODEL]
+FALLBACK_MODEL = "claude-3.7-sonnet"
+ENABLE_MODEL_SWITCHING = FALSE
+
+# ========================
+# MODELS USED
+# ========================
+
+[MODELS_USED]
+IMAGE_MODEL = "gpt-image-1"
+TEXT_MODEL = "gpt-o4-mini"
+VIDEO_MODEL = "veo2"
+MUSIC_MODEL = "beatoven.ai"
+
+# ========================
+# PROMPT ENRICHMENT
+
+[MUSIC_PROMPTS_BY_GENRE]
+
+HIP_HOP="
+"West Coast heatwave with booming 808s, funky synth bass, and distorted vocal chops — think Dr. Dre meets Travis Scott in 2025. Mood: Swagger, Dominance."
+
+"Dark, cinematic trap beat layered with haunting strings, glitchy hi-hats, and bass drops that shake your bones. Mood: Gritty, Powerful."
+
+"Old-school NYC boom bap with a modern twist — crunchy snares, jazzy horns, and lyrical storytelling energy. Mood: Hustle, Confidence."
+
+"High-energy club banger with Afrobeat-influenced percussion, pitched-up vocal samples, and a beat drop that hits like a freight train. Mood: Party, Unstoppable."
+
+"Futuristic drill beat with icy synths, rapid hi-hat rolls, and cinematic FX — imagine Blade Runner meets Pop Smoke. Mood: Cold, Intense."
+"
+
+
+COUNTRY="
+"Southern backroad anthem with stomping drums, dirty slide guitar, and an outlaw vibe — perfect for a bonfire brawl. Mood: Rowdy, Rebel."
+
+"Modern country-pop hit with upbeat acoustic strums, catchy hooks, and arena-sized choruses — made to belt in a pickup truck. Mood: Free, Wild."
+
+"Banjo-driven country rock with a pounding kick, electric guitar solos, and whiskey-fueled energy. Mood: Bold, Celebratory."
+
+"High-octane bluegrass fusion with double-time fiddle riffs, foot-stomping rhythm, and explosive breakdowns. Mood: Fast, Fiery."
+
+"Dark country trap with ominous Dobro slides, moody pads, and deep bass — Johnny Cash meets trap house. Mood: Mysterious, Menacing."
+"
+

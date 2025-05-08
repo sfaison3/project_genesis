@@ -94,6 +94,9 @@ npm run dev
 - [ ] Initial integration with OpenAI `gpt-image-1`
 - [ ] MCP routing logic for multi-modal input
 - [ ] Video generation workflow using `veo2`
+- [ ] Music generation workflow using `beatoven`
+- [ ] Generate album cover art for each song generated that fits the genre of the song
+- [ ] Choice of genre of music between "coutnry" and "hip hop"
 - [ ] Frontend input form for image/video/text
 - [ ] MongoDB schema for request tracking
 - [ ] Deployment pipeline with Render
