@@ -95,6 +95,7 @@ class MusicGenerationRequest(BaseModel):
     duration: Optional[int] = 60  # Duration in seconds
     topic: str
     custom_prompt: Optional[str] = None  # Optional custom prompt, otherwise use predefined prompts
+    test_mode: Optional[bool] = False  # Flag to use test mode instead of live API
 
 # Model Context Protocol (MCP) - Simple implementation
 def determine_best_model(input_text: str, requested_model: str) -> str:
@@ -130,7 +131,7 @@ def get_beatoven_genres():
         {"id": "folk", "name": "Folk", "description": "Traditional acoustic cultural music"}
     ]
 
-def generate_music(genre: str, duration: int, topic: str, prompt: str = None, poll_for_completion: bool = False):
+def generate_music(genre: str, duration: int, topic: str, prompt: str = None, poll_for_completion: bool = False, test_mode: bool = False):
     """Generate music using Beatoven.ai API"""
     # https://github.com/Beatoven/public-api/blob/main/docs/api-spec.md
     
@@ -140,8 +141,14 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
             detail="Beatoven API key is required but not configured"
         )
         
-    # For testing purposes, we'll use mock responses when BEATOVEN_API_KEY is set to "TEST_MODE"
-    is_test_mode = BEATOVEN_API_KEY == "TEST_MODE"
+    # Determine if we should use test mode - either explicit request or environment setting
+    is_test_mode = test_mode or BEATOVEN_API_KEY == "TEST_MODE"
+    
+    # Log whether we're using test mode or live API
+    if is_test_mode:
+        print("Using TEST MODE for this request (mock responses)")
+    else:
+        print("Using LIVE Beatoven.ai API for this request")
     
     # Use provided prompt or get a random one from the genre-specific prompts
     music_prompt = prompt
@@ -446,7 +453,7 @@ async def health_check():
     return {"status": "ok"}
 
 @app.get("/api/music/tasks/{task_id}")
-async def get_music_task(task_id: str):
+async def get_music_task(task_id: str, test_mode: bool = False):
     """Get the status and results of a Beatoven.ai task"""
     if not BEATOVEN_API_KEY:
         raise HTTPException(
@@ -454,8 +461,14 @@ async def get_music_task(task_id: str):
             detail="Beatoven API key is required but not configured"
         )
     
-    # For testing purposes, we'll use mock responses when BEATOVEN_API_KEY is set to "TEST_MODE"
-    is_test_mode = BEATOVEN_API_KEY == "TEST_MODE"
+    # Determine if we should use test mode - either explicit request or environment setting
+    is_test_mode = test_mode or BEATOVEN_API_KEY == "TEST_MODE"
+    
+    # Log test mode status
+    if is_test_mode:
+        print(f"Using TEST MODE for task {task_id} (mock responses)")
+    else:
+        print(f"Using LIVE Beatoven.ai API for task {task_id}")
     
     try:
         # Handle test/fallback mode
@@ -588,7 +601,8 @@ async def generate_music_endpoint(request: MusicGenerationRequest):
             duration=request.duration,
             topic=request.topic,
             prompt=request.custom_prompt,
-            poll_for_completion=True  # Try to wait for the track to complete
+            poll_for_completion=True,  # Try to wait for the track to complete
+            test_mode=request.test_mode  # Pass the test mode flag from the request
         )
         
         # Extract track ID from URL if available and not already included
@@ -723,7 +737,7 @@ async def get_track_status(track_id: str):
         raise HTTPException(status_code=500, detail=f"Beatoven API error: {str(e)}")
 
 @app.post("/api/generate", response_model=GenerateResponse)
-async def generate(request: GenerateRequest):
+async def generate(request: GenerateRequest, test_mode: bool = False):
     """Generate content based on input using MCP routing"""
     try:
         # Determine which model to use via MCP
@@ -745,6 +759,12 @@ async def generate(request: GenerateRequest):
                 status_code=500,
                 detail="Beatoven API key is required but not configured"
             )
+            
+        # Log whether we're using test mode
+        if test_mode:
+            print(f"Using TEST MODE for {model} generation (mock responses)")
+        else:
+            print(f"Using LIVE API for {model} generation")
         
         # This would call the actual AI services in production
         # For now, return mock responses
@@ -767,7 +787,8 @@ async def generate(request: GenerateRequest):
                 genre=request.genre,
                 duration=request.duration,
                 topic=topic,
-                poll_for_completion=True  # Try to wait for the track to complete
+                poll_for_completion=True,  # Try to wait for the track to complete
+                test_mode=test_mode  # Pass the test mode flag
             )
             
             # Create a more comprehensive response
