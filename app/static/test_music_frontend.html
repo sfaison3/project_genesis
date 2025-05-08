@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesis Music API Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #7c4dff;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #7c4dff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #6a3de8;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .result h2 {
+            margin-top: 0;
+            color: #7c4dff;
+        }
+        .result pre {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .lyrics {
+            white-space: pre-wrap;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Genesis Music Learning API Test</h1>
+    
+    <div class="form-group">
+        <label for="topic">Learning Topic:</label>
+        <input type="text" id="topic" placeholder="e.g., photosynthesis, American Revolution" value="photosynthesis">
+    </div>
+    
+    <div class="form-group">
+        <label for="genre">Genre:</label>
+        <select id="genre">
+            <option value="hip_hop">Hip Hop</option>
+            <option value="country">Country</option>
+            <option value="pop">Pop</option>
+            <option value="rock">Rock</option>
+            <option value="jazz">Jazz</option>
+            <option value="classical">Classical</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="duration">Duration (seconds):</label>
+        <select id="duration">
+            <option value="30">30 seconds</option>
+            <option value="60" selected>1 minute</option>
+            <option value="120">2 minutes</option>
+            <option value="180">3 minutes</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="custom-prompt">Custom Prompt (optional):</label>
+        <textarea id="custom-prompt" rows="3" placeholder="Enter a custom music prompt to override the default"></textarea>
+    </div>
+    
+    <button id="generate">Generate Music</button>
+    
+    <div class="result" id="result" style="display: none;">
+        <h2>Results</h2>
+        <div id="track-info"></div>
+        
+        <h3>Audio Preview:</h3>
+        <div id="audio-player"></div>
+        
+        <h3>Lyrics:</h3>
+        <div id="lyrics" class="lyrics"></div>
+        
+        <h3>API Response:</h3>
+        <pre id="api-response"></pre>
+    </div>
+    
+    <script>
+        document.getElementById('generate').addEventListener('click', async () => {
+            const topic = document.getElementById('topic').value;
+            const genre = document.getElementById('genre').value;
+            const duration = parseInt(document.getElementById('duration').value);
+            const customPrompt = document.getElementById('custom-prompt').value;
+            
+            if (!topic) {
+                alert('Please enter a learning topic');
+                return;
+            }
+            
+            // Show loading state
+            document.getElementById('generate').textContent = 'Generating...';
+            document.getElementById('generate').disabled = true;
+            
+            try {
+                // Make API request
+                const response = await fetch('/api/music/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        topic,
+                        genre,
+                        duration,
+                        custom_prompt: customPrompt || undefined
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Display the results
+                document.getElementById('track-info').innerHTML = `
+                    <p><strong>Title:</strong> ${data.title || 'Learning about ' + topic}</p>
+                    <p><strong>Genre:</strong> ${genre}</p>
+                    <p><strong>Status:</strong> ${data.status}</p>
+                    <p><strong>Track ID:</strong> ${data.track_id || 'N/A'}</p>
+                `;
+                
+                // Display audio player if URL is available
+                document.getElementById('audio-player').innerHTML = data.output_url.endsWith('.mp3') 
+                    ? `<audio controls src="${data.output_url}"></audio>`
+                    : `<p>Audio is still processing. Check back later at: <a href="${data.output_url}" target="_blank">${data.output_url}</a></p>`;
+                
+                // Display lyrics if available
+                document.getElementById('lyrics').textContent = data.lyrics || 'Lyrics not available';
+                
+                // Show the full API response
+                document.getElementById('api-response').textContent = JSON.stringify(data, null, 2);
+                
+                // Show the result section
+                document.getElementById('result').style.display = 'block';
+                
+                // Scroll to results
+                document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('api-response').textContent = `Error: ${error.message}`;
+                document.getElementById('result').style.display = 'block';
+            } finally {
+                // Reset button state
+                document.getElementById('generate').textContent = 'Generate Music';
+                document.getElementById('generate').disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

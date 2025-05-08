@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, Literal, List
 import uvicorn
@@ -13,6 +15,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(title="Genesis Music Learning API", description="Generate custom songs to enhance learning")
+
+# Mount static files directory for testing
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Serve test page
+@app.get("/test", include_in_schema=False)
+async def test_page():
+    return FileResponse("static/test_music_frontend.html")
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -129,6 +139,9 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
             status_code=500,
             detail="Beatoven API key is required but not configured"
         )
+        
+    # For testing purposes, we'll use mock responses when BEATOVEN_API_KEY is set to "TEST_MODE"
+    is_test_mode = BEATOVEN_API_KEY == "TEST_MODE"
     
     # Use provided prompt or get a random one from the genre-specific prompts
     music_prompt = prompt
@@ -153,12 +166,47 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
             "customPrompt": music_prompt
         }
         
-        # Make the API request
-        response = requests.post(
-            "https://api.beatoven.ai/v1/tracks",
-            headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}", "Content-Type": "application/json"},
-            json=payload
-        )
+        # For test mode, use a mock response instead of making an actual API call
+        if is_test_mode:
+            print("TEST MODE: Using mock Beatoven.ai response")
+            mock_track_id = f"test-track-{genre}-{int(time.time())}"
+            mock_response = {
+                "status": 200,
+                "json": lambda: {
+                    "id": mock_track_id,
+                    "name": track_name,
+                    "duration": duration,
+                    "genre": beatoven_genre,
+                    "status": "COMPLETED",
+                    # For testing, use a placeholder MP3 URL that can be accessed
+                    "previewUrl": f"https://filesamples.com/samples/audio/mp3/sample3.mp3"
+                }
+            }
+            class MockResponse:
+                def __init__(self, status_code, data):
+                    self.status_code = status_code
+                    self.data = data
+                def json(self):
+                    return self.data
+                def raise_for_status(self):
+                    if self.status_code >= 400:
+                        raise requests.exceptions.HTTPError(f"HTTP Error: {self.status_code}")
+            
+            response = MockResponse(200, {
+                "id": mock_track_id,
+                "name": track_name,
+                "duration": duration,
+                "genre": beatoven_genre,
+                "status": "COMPLETED",
+                "previewUrl": f"https://filesamples.com/samples/audio/mp3/sample3.mp3"
+            })
+        else:
+            # Make the actual API request
+            response = requests.post(
+                "https://api.beatoven.ai/v1/tracks",
+                headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}", "Content-Type": "application/json"},
+                json=payload
+            )
         
         if response.status_code != 200 and response.status_code != 201:
             print(f"Beatoven API error: {response.status_code} - {response.text}")
@@ -180,44 +228,51 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         
         # If poll_for_completion is True, wait for the track to be ready
         if poll_for_completion and track_id:
-            max_attempts = 10
-            attempt = 0
-            wait_time = 3  # Initial wait time in seconds
-            
-            while attempt < max_attempts and (not preview_url or not preview_url.endswith('.mp3')):
-                print(f"Polling for track completion, attempt {attempt+1}/{max_attempts}")
-                time.sleep(wait_time)
+            # For test mode, we already have a completed track
+            if is_test_mode:
+                print("TEST MODE: Track is already complete, skipping polling")
+                # Make sure we have a valid preview URL for test mode
+                if not preview_url or not preview_url.endswith('.mp3'):
+                    preview_url = "https://filesamples.com/samples/audio/mp3/sample3.mp3"
+            else:
+                max_attempts = 10
+                attempt = 0
+                wait_time = 3  # Initial wait time in seconds
                 
-                # Exponential backoff - increase wait time gradually
-                wait_time = min(wait_time * 1.5, 15)  # Cap at 15 seconds
-                
-                # Check track status
-                try:
-                    status_response = requests.get(
-                        f"https://api.beatoven.ai/v1/tracks/{track_id}",
-                        headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"}
-                    )
+                while attempt < max_attempts and (not preview_url or not preview_url.endswith('.mp3')):
+                    print(f"Polling for track completion, attempt {attempt+1}/{max_attempts}")
+                    time.sleep(wait_time)
                     
-                    if status_response.status_code == 200:
-                        track_data = status_response.json()
-                        status = track_data.get("status")
-                        preview_url = track_data.get("previewUrl")
+                    # Exponential backoff - increase wait time gradually
+                    wait_time = min(wait_time * 1.5, 15)  # Cap at 15 seconds
+                    
+                    # Check track status
+                    try:
+                        status_response = requests.get(
+                            f"https://api.beatoven.ai/v1/tracks/{track_id}",
+                            headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"}
+                        )
                         
-                        print(f"Track status: {status}, Preview URL: {preview_url}")
-                        
-                        if status == "COMPLETED" and preview_url and preview_url.endswith('.mp3'):
-                            print("Track is ready!")
-                            break
-                        elif status in ["FAILED", "ERROR"]:
-                            print(f"Track generation failed with status: {status}")
-                            break
-                    else:
-                        print(f"Failed to get track status: {status_response.status_code}")
-                
-                except Exception as e:
-                    print(f"Error checking track status: {str(e)}")
-                
-                attempt += 1
+                        if status_response.status_code == 200:
+                            track_data = status_response.json()
+                            status = track_data.get("status")
+                            preview_url = track_data.get("previewUrl")
+                            
+                            print(f"Track status: {status}, Preview URL: {preview_url}")
+                            
+                            if status == "COMPLETED" and preview_url and preview_url.endswith('.mp3'):
+                                print("Track is ready!")
+                                break
+                            elif status in ["FAILED", "ERROR"]:
+                                print(f"Track generation failed with status: {status}")
+                                break
+                        else:
+                            print(f"Failed to get track status: {status_response.status_code}")
+                    
+                    except Exception as e:
+                        print(f"Error checking track status: {str(e)}")
+                    
+                    attempt += 1
         
         # If no preview URL yet, use the track page URL
         if not preview_url:
@@ -412,20 +467,43 @@ async def get_track_status(track_id: str):
             detail="Beatoven API key is required but not configured"
         )
     
+    # For testing purposes, we'll use mock responses when BEATOVEN_API_KEY is set to "TEST_MODE"
+    is_test_mode = BEATOVEN_API_KEY == "TEST_MODE"
+    
     try:
-        # Call Beatoven API to get track status
-        response = requests.get(
-            f"https://api.beatoven.ai/v1/tracks/{track_id}",
-            headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"}
-        )
-        
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"Failed to get track status: {response.text}"
+        if is_test_mode and track_id.startswith("test-track-"):
+            print("TEST MODE: Using mock track status response")
+            # Parse genre from track ID (if available)
+            parts = track_id.split("-")
+            genre = parts[2] if len(parts) > 2 else "unknown"
+            # Determine topic from track ID or use placeholder
+            topic = "test topic"
+            
+            # Mock response for testing
+            track_data = {
+                "id": track_id,
+                "name": f"Learning about {topic}",
+                "duration": 60,
+                "genre": genre,
+                "status": "COMPLETED",
+                "previewUrl": "https://filesamples.com/samples/audio/mp3/sample3.mp3",
+                "createdAt": "2023-05-08T10:00:00Z",
+                "updatedAt": "2023-05-08T10:01:00Z"
+            }
+        else:
+            # Call Beatoven API to get track status
+            response = requests.get(
+                f"https://api.beatoven.ai/v1/tracks/{track_id}",
+                headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"}
             )
-        
-        track_data = response.json()
+            
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Failed to get track status: {response.text}"
+                )
+            
+            track_data = response.json()
         
         # Extract track name and genre for generating lyrics
         track_name = track_data.get("name", "")
