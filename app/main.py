@@ -176,7 +176,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 "status": 200,
                 "json": lambda: {
                     "id": mock_track_id,
-                    "taskId": mock_task_id,
+                    "task_id": mock_task_id,
                     "name": track_name,
                     "duration": duration,
                     "genre": beatoven_genre,
@@ -197,7 +197,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
             
             response = MockResponse(200, {
                 "id": mock_track_id,
-                "taskId": mock_task_id,
+                "task_id": mock_task_id,
                 "name": track_name,
                 "duration": duration,
                 "genre": beatoven_genre,
@@ -219,7 +219,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 if response.status_code == 200 or response.status_code == 201:
                     data = response.json()
                     # The initial track creation should also provide a task_id
-                    task_id = data.get("taskId")
+                    task_id = data.get("task_id")  # Using task_id with underscore per API docs
             except requests.exceptions.ConnectionError as conn_error:
                 # DNS resolution or connection issue - use fallback mode
                 print(f"Connection error to Beatoven API: {str(conn_error)}")
@@ -229,7 +229,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 mock_task_id = f"fallback-task-{genre}-{int(time.time())}"
                 response = MockResponse(200, {
                     "id": mock_track_id,
-                    "taskId": mock_task_id,
+                    "task_id": mock_task_id,
                     "name": track_name,
                     "duration": duration,
                     "genre": beatoven_genre,
@@ -253,7 +253,10 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         track_id = data.get("id")
         # Ensure we have the task_id (if we didn't get it previously)
         if not task_id:
-            task_id = data.get("taskId")
+            task_id = data.get("task_id")
+            
+        # Log the task_id to help with debugging
+        print(f"Task ID: {task_id}")
         print(f"Track created with ID: {track_id}")
         
         # Check if we have a preview URL immediately (unlikely but possible)
