@@ -6,7 +6,7 @@
 
 It integrates **OpenAI's `gpt-image-1`**, **Google's `veo2` video model**, **Gemini**, and **OpenAI's `o4-mini`**, coordinated by the MCP to dynamically route requests to the best model for each input type.
 
-Built with a **TypeScript frontend** and **FastAPI backend**, using **MongoDB** for persistence, and **deployed on Render** for fast and reliable hosting.
+Built with a **JavaScript frontend** and **FastAPI backend**, using **MongoDB** for persistence, and **deployed on Render** for fast and reliable hosting.
 
 This repository is the initial shell prototype for rapid development at **[Hackathon Name]** on **[Date]**.
 
@@ -14,7 +14,7 @@ This repository is the initial shell prototype for rapid development at **[Hacka
 
 ## ⚙️ Tech Stack
 
-- **Language:** Python (backend), TypeScript (frontend)
+- **Language:** Python (backend), JavaScript (frontend)
 - **Frameworks:** FastAPI (backend), (frontend — Vue with JS)
 - **AI Models:**
   - OpenAI `gpt-image-1` (image generation)
