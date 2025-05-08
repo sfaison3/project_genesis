@@ -1,114 +1,165 @@
 <template>
-  <header>
-    <h1>Genesis Music Learning App</h1>
-    <h2>Generate custom songs to make learning fun and memorable</h2>
-    <div class="api-status">
-      <span>API Status: </span>
-      <span v-if="apiStatus === null">Checking...</span>
-      <span v-else-if="apiStatus === 'ok'" class="status-ok">Connected</span>
-      <span v-else class="status-error">Disconnected</span>
-    </div>
-  </header>
-  
-  <main>
-    <div class="input-section">
-      <h3>Create a Learning Song</h3>
-      <div class="form-group">
-        <label for="topic-input">What are you learning about?</label>
-        <input id="topic-input" v-model="learningTopic" placeholder="Enter topic (e.g., Photosynthesis, World War II, Calculus...)" />
-      </div>
-      
-      <div class="form-group">
-        <label for="song-prompt">What should the song explain or teach?</label>
-        <textarea id="song-prompt" v-model="userInput" placeholder="Describe what you want to learn through music... For example: 'Create a song explaining how photosynthesis works in plants'"></textarea>
-      </div>
-      
-      <div class="form-options">
-        <div class="form-group">
-          <label for="model-select">Generation Method</label>
-          <select id="model-select" v-model="selectedModel">
-            <option value="auto">Auto (MCP)</option>
-            <option value="beatoven">Music Only</option>
-            <option value="o4-mini">Lyrics Only</option>
-            <option value="gpt-image-1">Image</option>
-            <option value="veo2">Video</option>
-          </select>
-        </div>
-        
-        <div class="form-group" v-if="selectedModel === 'auto' || selectedModel === 'beatoven'">
-          <label for="genre-select">Music Genre</label>
-          <select id="genre-select" v-model="selectedGenre">
-            <option value="pop">Pop</option>
-            <option value="rock">Rock</option>
-            <option value="jazz">Jazz</option>
-            <option value="classical">Classical</option>
-            <option value="electronic">Electronic</option>
-            <option value="hip_hop">Hip Hop</option>
-            <option value="country">Country</option>
-            <option value="folk">Folk</option>
-          </select>
-        </div>
-        
-        <div class="form-group" v-if="selectedModel === 'auto' || selectedModel === 'beatoven'">
-          <label for="duration-select">Song Duration</label>
-          <select id="duration-select" v-model="selectedDuration">
-            <option :value="30">30 seconds</option>
-            <option :value="60">1 minute</option>
-            <option :value="120">2 minutes</option>
-            <option :value="180">3 minutes</option>
-          </select>
-        </div>
-      </div>
-      
-      <button class="generate-button" @click="processInput">Generate Learning Content</button>
+  <div class="app-container">
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p>Generating your educational music...</p>
     </div>
     
-    <div class="output-section">
-      <h3>Your Learning Content</h3>
-      <div class="output-display">
-        <p v-if="isLoading">Creating your personalized learning content...</p>
-        <div v-else-if="output" class="result">
-          <div v-if="outputType === 'text'" class="text-output">{{ output }}</div>
-          <img v-else-if="outputType === 'image'" :src="output" alt="Generated image" />
-          <video v-else-if="outputType === 'video'" controls>
-            <source :src="output" type="video/mp4">
-            Your browser does not support the video tag.
-          </video>
-          <div v-else-if="outputType === 'music'" class="music-output">
-            <h4>Your Learning Song</h4>
-            <audio controls>
-              <source :src="output" type="audio/mpeg">
-              Your browser does not support the audio tag.
-            </audio>
+    <div class="app-content">
+      <div class="left-panel">
+        <div class="form-section">
+          <h2>What do you want to learn?</h2>
+          <div class="input-container">
+            <input 
+              v-model="learningTopic" 
+              placeholder="I'm trying to understand this chart in Economics" 
+              class="topic-input"
+            />
+          </div>
+          
+          <div class="upload-section">
+            <p class="upload-label">upload for additional context (PDF, etc)</p>
+            <FileUpload @file-selected="handleFileUpload">upload</FileUpload>
+          </div>
+          
+          <div class="genre-section">
+            <h3>Genre</h3>
+            <div class="genre-buttons">
+              <button 
+                class="genre-button" 
+                :class="{ 'active': selectedGenre === 'country' }"
+                @click="selectGenre('country')"
+              >
+                Country
+              </button>
+              <button 
+                class="genre-button" 
+                :class="{ 'active': selectedGenre === 'hip_hop' }"
+                @click="selectGenre('hip_hop')"
+              >
+                Hip hop
+              </button>
+              <button 
+                class="genre-button" 
+                :class="{ 'active': selectedGenre === 'pop' }"
+                @click="selectGenre('pop')"
+              >
+                Pop
+              </button>
+              <button 
+                class="genre-button"
+                @click="showMoreGenres"
+              >
+                More
+              </button>
+            </div>
+          </div>
+          
+          <button class="compose-button" @click="processInput">Compose</button>
+        </div>
+      </div>
+      
+      <div class="right-panel">
+        <div class="output-section">
+          <div class="output-header">
+            <div class="thumbnail">
+              <div class="placeholder-thumbnail">
+                image for thumbnail of video
+              </div>
+            </div>
+            
+            <div class="song-info">
+              <h3 class="song-info-title">the why</h3>
+              <p>Summary of results</p>
+            </div>
+          </div>
+          
+          <h3 class="song-title">{{ songTitle || 'Song title' }}</h3>
+          
+          <div class="video-player">
+            <template v-if="videoUrl">
+              <video controls>
+                <source :src="videoUrl" type="video/mp4">
+                Your browser does not support the video tag.
+              </video>
+            </template>
+            <template v-else-if="audioUrl">
+              <div class="audio-container">
+                <div class="play-button-overlay" @click="toggleAudio">
+                  <span class="play-icon">{{ isAudioPlaying ? '❚❚' : '▶' }}</span>
+                  <span class="play-text">{{ isAudioPlaying ? 'Pause' : 'Play' }}</span>
+                </div>
+                <audio ref="audioPlayer" :src="audioUrl" @ended="audioEnded" class="hidden-audio"></audio>
+                <div class="audio-placeholder">
+                  {{ isAudioPlaying ? 'Now playing...' : 'Music track available' }}
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="play-button-overlay">
+                <span class="play-icon">▶</span>
+                <span class="play-text">play button</span>
+              </div>
+              <div class="video-placeholder">
+                music video
+              </div>
+            </template>
+          </div>
+          
+          <div class="lyrics-section">
+            <h3>Lyrics</h3>
+            <p v-if="lyricsText" class="lyrics-content">{{ lyricsText }}</p>
+            <p v-else-if="output && outputType === 'text'" class="lyrics-content">{{ output }}</p>
+            <p v-else class="lyrics-content placeholder-text">Your lyrics will appear here</p>
+          </div>
+          
+          <div class="action-buttons">
+            <button class="action-button" @click="downloadContent" :disabled="!audioUrl && !videoUrl">Download</button>
+            <button class="action-button" @click="shareContent" :disabled="!audioUrl && !videoUrl">Share</button>
+            <button class="action-button action-button-wide" @click="generateVideo" :disabled="!audioUrl || videoUrl">Turn into music video</button>
           </div>
         </div>
-        <p v-else class="placeholder">Your personalized learning content will appear here</p>
       </div>
     </div>
-  </main>
-  
-  <footer>
-    <p>Genesis Music Learning App - Making education fun and memorable</p>
-  </footer>
+  </div>
+
+  <!-- API Status indicator (keep this for development) -->
+  <div class="api-status-indicator">
+    <span>API Status: </span>
+    <span v-if="apiStatus === null">Checking...</span>
+    <span v-else-if="apiStatus === 'ok'" class="status-ok">Connected</span>
+    <span v-else class="status-error">Disconnected</span>
+  </div>
 </template>
 
 <script>
 import config from './config'
+import FileUpload from './components/FileUpload.vue'
 
 export default {
+  components: {
+    FileUpload
+  },
   data() {
     return {
       userInput: '',
       learningTopic: '',
-      selectedModel: 'auto',
-      selectedGenre: 'pop',
+      selectedModel: 'beatoven', // Default to music generation
+      selectedGenre: 'hip_hop',  // Default to hip hop
       selectedDuration: 60,
       output: null,
       outputType: 'text',
       isLoading: false,
       apiUrl: config.apiUrl,
       apiStatus: null,
-      genres: []
+      genres: [],
+      songTitle: '',
+      videoUrl: '',
+      audioUrl: '',
+      lyricsText: '',
+      uploadedFile: null,
+      uploadedFileName: '',
+      isAudioPlaying: false
     }
   },
   mounted() {
@@ -121,6 +172,29 @@ export default {
     this.loadMusicGenres()
   },
   methods: {
+    selectGenre(genre) {
+      this.selectedGenre = genre
+    },
+    
+    showMoreGenres() {
+      // This would show a modal or expanded list of genres
+      alert('Additional genres coming soon!')
+    },
+    
+    handleFileUpload(file) {
+      this.uploadedFile = file
+      this.uploadedFileName = file.name
+      console.log('File uploaded:', file.name)
+      
+      // In a real implementation, we might want to:
+      // 1. Show a preview of the file
+      // 2. Read text files to extract context
+      // 3. Send the file to the backend for processing
+      
+      // For simplicity, we'll just store the file and alert the user
+      alert(`File "${file.name}" selected for additional context`)
+    },
+    
     async checkApiHealth() {
       try {
         const endpoint = `${this.apiUrl}/health`.replace('//', '/')
@@ -159,33 +233,64 @@ export default {
           { id: 'pop', name: 'Pop' },
           { id: 'rock', name: 'Rock' },
           { id: 'jazz', name: 'Jazz' },
-          { id: 'classical', name: 'Classical' }
+          { id: 'classical', name: 'Classical' },
+          { id: 'hip_hop', name: 'Hip Hop' },
+          { id: 'country', name: 'Country' }
         ]
       }
     },
     
     async processInput() {
-      if (!this.userInput.trim()) {
+      if (!this.learningTopic.trim()) {
         alert('Please enter what you want to learn about!')
         return
       }
       
       this.isLoading = true
       try {
+        // Automatically use learning topic as input if no specific user input
+        if (!this.userInput.trim()) {
+          this.userInput = `Create a song about ${this.learningTopic}`
+        }
+        
         // Use the API URL from environment variables
         const endpoint = `${this.apiUrl}/generate`.replace('//', '/')
         console.log('Making request to:', endpoint)
         
-        const requestBody = {
-          input: this.userInput,
-          model: this.selectedModel,
-          learning_topic: this.learningTopic
+        // For file uploads, we need to use FormData instead of plain JSON
+        if (this.uploadedFile) {
+          const formData = new FormData()
+          formData.append('file', this.uploadedFile)
+          formData.append('input', this.userInput)
+          formData.append('model', 'beatoven') 
+          formData.append('learning_topic', this.learningTopic)
+          formData.append('genre', this.selectedGenre)
+          formData.append('duration', this.selectedDuration)
+          
+          console.log('Sending FormData with file:', this.uploadedFileName)
+          
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            body: formData
+          })
+          
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.detail || 'API request failed')
+          }
+          
+          const data = await response.json()
+          this.handleApiResponse(data)
+          return
         }
         
-        // Add music-specific parameters if needed
-        if (this.selectedModel === 'beatoven' || this.selectedModel === 'auto') {
-          requestBody.genre = this.selectedGenre
-          requestBody.duration = this.selectedDuration
+        // Standard JSON request (no file upload)
+        const requestBody = {
+          input: this.userInput,
+          model: 'beatoven', // Always use beatoven for music
+          learning_topic: this.learningTopic,
+          genre: this.selectedGenre,
+          duration: this.selectedDuration
         }
         
         console.log('Request payload:', requestBody)
@@ -204,8 +309,7 @@ export default {
         }
         
         const data = await response.json()
-        this.output = data.output
-        this.outputType = data.type // 'text', 'image', 'video', or 'music'
+        this.handleApiResponse(data)
       } catch (error) {
         console.error('Error:', error)
         this.output = `Error processing request: ${error.message}`
@@ -213,190 +317,478 @@ export default {
       } finally {
         this.isLoading = false
       }
+    },
+    
+    handleApiResponse(data) {
+      // Handle different types of responses
+      this.output = data.output
+      this.outputType = data.type
+      
+      // If we get a music response, we would also have lyrics and a title
+      if (data.type === 'music') {
+        this.audioUrl = data.output
+        this.songTitle = data.title || `Song about ${this.learningTopic}`
+        this.lyricsText = data.lyrics || 'Lyrics not available for this song.'
+        
+        // In a real app, we'd also handle video URL if available
+        this.videoUrl = data.video_url || ''
+      }
+    },
+    
+    toggleAudio() {
+      if (!this.$refs.audioPlayer) return
+      
+      if (this.isAudioPlaying) {
+        this.$refs.audioPlayer.pause()
+      } else {
+        this.$refs.audioPlayer.play()
+      }
+      
+      this.isAudioPlaying = !this.isAudioPlaying
+    },
+    
+    audioEnded() {
+      this.isAudioPlaying = false
+    },
+    
+    downloadContent() {
+      if (this.audioUrl) {
+        // Create an anchor element and trigger download
+        const a = document.createElement('a')
+        a.href = this.audioUrl
+        a.download = `${this.songTitle || 'learning_song'}.mp3`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      } else if (this.videoUrl) {
+        // Similar process for video
+        const a = document.createElement('a')
+        a.href = this.videoUrl
+        a.download = `${this.songTitle || 'learning_video'}.mp4`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+      }
+    },
+    
+    shareContent() {
+      // Use Web Share API if available
+      if (navigator.share) {
+        navigator.share({
+          title: this.songTitle || 'Learning Song',
+          text: 'Check out this educational song I created!',
+          url: this.audioUrl || this.videoUrl
+        })
+        .catch(err => {
+          console.error('Error sharing:', err)
+          this.fallbackShare()
+        })
+      } else {
+        this.fallbackShare()
+      }
+    },
+    
+    fallbackShare() {
+      // Fallback for browsers without Web Share API
+      const shareText = `${this.songTitle || 'Learning Song'}: ${this.audioUrl || this.videoUrl}`
+      
+      // Copy to clipboard
+      navigator.clipboard.writeText(shareText)
+        .then(() => alert('Link copied to clipboard!'))
+        .catch(() => alert('Unable to copy to clipboard. The URL is: ' + (this.audioUrl || this.videoUrl)))
+    },
+    
+    generateVideo() {
+      if (!this.audioUrl) return
+      
+      this.isLoading = true
+      
+      // In a real implementation, we'd make an API call to generate a video
+      // For this prototype, we'll simulate it with a timeout
+      setTimeout(() => {
+        alert('Video generation is not implemented in this prototype. In a production version, this would send the audio to a video generation service.')
+        this.isLoading = false
+      }, 1500)
     }
   }
 }
 </script>
 
 <style>
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f0f0;
   color: #333;
-  background-color: #f9f9f9;
 }
 
-header, footer {
-  background-color: #5d4194;
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background-color: #f0f0f0;
+}
+
+.app-content {
+  display: flex;
+  width: 100%;
+  max-width: 1200px;
+  min-height: 600px;
+  background-color: #666;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Left panel styles */
+.left-panel {
+  flex: 1;
+  background-color: #666;
   color: white;
-  text-align: center;
-  padding: 1.5rem;
+  padding: 30px;
 }
 
-header h1 {
-  margin: 0;
-  font-size: 2.2rem;
-}
-
-header h2 {
-  font-weight: 400;
-  margin: 0.5rem 0 0;
-  font-size: 1.3rem;
-  opacity: 0.9;
-}
-
-main {
-  max-width: 900px;
+.form-section {
+  max-width: 500px;
   margin: 0 auto;
-  padding: 2rem;
 }
 
-.input-section, .output-section {
+.form-section h2 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.input-container {
+  margin-bottom: 20px;
+}
+
+.topic-input {
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
-  margin-bottom: 2rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
-.form-group {
-  margin-bottom: 1.5rem;
+.upload-section {
+  margin: 30px 0;
+  padding: 20px;
+  border: 2px dashed white;
+  border-radius: 15px;
+  text-align: center;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #444;
+.upload-label {
+  margin-bottom: 15px;
 }
 
-input[type="text"], 
-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-textarea {
-  width: 100%;
-  height: 120px;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  box-sizing: border-box;
-  resize: vertical;
-}
-
-.form-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.generate-button {
-  display: block;
-  width: 100%;
-  padding: 1rem;
-  background-color: #5d4194;
+.upload-button {
+  background-color: #7c4dff;
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 1.1rem;
-  font-weight: 500;
+  border-radius: 20px;
+  padding: 8px 25px;
+  font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.2s;
 }
 
-.generate-button:hover {
-  background-color: #4c3575;
+.genre-section {
+  margin: 30px 0;
 }
 
-select {
+.genre-section h3 {
+  margin-bottom: 15px;
+  font-size: 20px;
+}
+
+.genre-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.genre-button {
+  flex: 1 0 calc(33% - 15px);
+  padding: 15px 10px;
+  background-color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  min-width: 120px;
+  color: #333;
+}
+
+.genre-button.active {
+  background-color: #7c4dff;
+  color: white;
+}
+
+.compose-button {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  background-color: white;
+  padding: 15px;
+  background-color: #7c4dff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: bold;
   cursor: pointer;
+  margin-top: 20px;
 }
 
-.output-display {
-  min-height: 200px;
-  border: 1px solid #ddd;
+/* Right panel styles */
+.right-panel {
+  flex: 1;
   background-color: white;
-  border-radius: 4px;
-  padding: 1.5rem;
+  padding: 20px;
+  overflow-y: auto;
 }
 
-.placeholder {
-  color: #999;
+.output-section {
+  padding: 20px;
+}
+
+.output-header {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+.thumbnail {
+  width: 150px;
+  height: 120px;
+  margin-right: 15px;
+}
+
+.placeholder-thumbnail {
+  width: 100%;
+  height: 100%;
+  background-color: #7c4dff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.song-info {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+}
+
+.song-info-title {
+  margin-bottom: 10px;
+}
+
+.song-title {
+  margin: 20px 0 15px 0;
+}
+
+.video-player {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  background-color: #f4ecff;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.play-button-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  z-index: 2;
+}
+
+.play-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.video-placeholder, .audio-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+.audio-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.hidden-audio {
+  display: none;
+}
+
+.lyrics-section {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  min-height: 150px;
+}
+
+.lyrics-content {
+  margin-top: 10px;
+  white-space: pre-line;
+}
+
+.placeholder-text {
+  color: #999;
   font-style: italic;
 }
 
-img, video {
-  max-width: 100%;
-  border-radius: 4px;
-  display: block;
-  margin: 0 auto;
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
 }
 
-audio {
-  width: 100%;
-  margin-top: 1rem;
+.action-button {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background-color: white;
+  font-size: 16px;
+  cursor: pointer;
 }
 
-.api-status {
-  margin-top: 1rem;
-  font-size: 0.9rem;
+.action-button-wide {
+  flex: 2;
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* API status indicator (hidden in production) */
+.api-status-indicator {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  z-index: 1000;
 }
 
 .status-ok {
-  color: #3adb76;
-  font-weight: bold;
+  color: #4caf50;
 }
 
 .status-error {
-  color: #ec5840;
-  font-weight: bold;
+  color: #f44336;
 }
 
-.text-output {
-  white-space: pre-wrap;
-  line-height: 1.6;
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  color: white;
 }
 
-.music-output {
-  padding: 1.5rem;
-  background-color: #f5f0ff;
-  border-radius: 4px;
-  text-align: center;
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #7c4dff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
 }
 
-.music-output h4 {
-  margin-top: 0;
-  color: #5d4194;
-  font-size: 1.2rem;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-@media (max-width: 768px) {
-  .form-options {
-    grid-template-columns: 1fr;
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .app-content {
+    flex-direction: column;
   }
   
-  main {
-    padding: 1rem;
+  .left-panel, .right-panel {
+    width: 100%;
   }
   
-  .input-section, .output-section {
-    padding: 1.5rem;
+  .genre-button {
+    flex: 1 0 calc(50% - 10px);
+  }
+  
+  .action-buttons {
+    flex-wrap: wrap;
+  }
+  
+  .action-button {
+    flex: 1 0 calc(50% - 10px);
+  }
+  
+  .action-button-wide {
+    flex: 1 0 100%;
+    order: -1;
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .genre-button {
+    flex: 1 0 100%;
+  }
+  
+  .output-header {
+    flex-direction: column;
+  }
+  
+  .thumbnail {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 15px;
   }
 }
 </style>
