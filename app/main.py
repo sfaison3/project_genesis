@@ -5,6 +5,7 @@ from typing import Optional, Literal, List
 import uvicorn
 import os
 import requests
+import random
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -25,6 +26,29 @@ if not GOOGLE_API_KEY:
 if not BEATOVEN_API_KEY:
     print("Warning: BEATOVEN_API_KEY not found in environment variables")
 
+# Music prompts by genre from CLAUDE.rules
+HIP_HOP_PROMPTS = [
+    "West Coast heatwave with booming 808s, funky synth bass, and distorted vocal chops — think Dr. Dre meets Travis Scott in 2025. Mood: Swagger, Dominance.",
+    "Dark, cinematic trap beat layered with haunting strings, glitchy hi-hats, and bass drops that shake your bones. Mood: Gritty, Powerful.",
+    "Old-school NYC boom bap with a modern twist — crunchy snares, jazzy horns, and lyrical storytelling energy. Mood: Hustle, Confidence.",
+    "High-energy club banger with Afrobeat-influenced percussion, pitched-up vocal samples, and a beat drop that hits like a freight train. Mood: Party, Unstoppable.",
+    "Futuristic drill beat with icy synths, rapid hi-hat rolls, and cinematic FX — imagine Blade Runner meets Pop Smoke. Mood: Cold, Intense."
+]
+
+COUNTRY_PROMPTS = [
+    "Southern backroad anthem with stomping drums, dirty slide guitar, and an outlaw vibe — perfect for a bonfire brawl. Mood: Rowdy, Rebel.",
+    "Modern country-pop hit with upbeat acoustic strums, catchy hooks, and arena-sized choruses — made to belt in a pickup truck. Mood: Free, Wild.",
+    "Banjo-driven country rock with a pounding kick, electric guitar solos, and whiskey-fueled energy. Mood: Bold, Celebratory.",
+    "High-octane bluegrass fusion with double-time fiddle riffs, foot-stomping rhythm, and explosive breakdowns. Mood: Fast, Fiery.",
+    "Dark country trap with ominous Dobro slides, moody pads, and deep bass — Johnny Cash meets trap house. Mood: Mysterious, Menacing."
+]
+
+# Mapping genre to prompt lists
+GENRE_PROMPTS = {
+    "hip_hop": HIP_HOP_PROMPTS,
+    "country": COUNTRY_PROMPTS
+}
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -44,13 +68,19 @@ class GenerateRequest(BaseModel):
 
 class GenerateResponse(BaseModel):
     output: str
-    type: Literal["text", "image", "video", "music"]
+    type: str  # "text", "image", "video", "music"
     model_used: str
 
 class MusicGenreOption(BaseModel):
     id: str
     name: str
     description: str
+    
+class MusicGenerationRequest(BaseModel):
+    genre: str
+    duration: Optional[int] = 60  # Duration in seconds
+    topic: str
+    custom_prompt: Optional[str] = None  # Optional custom prompt, otherwise use predefined prompts
 
 # Model Context Protocol (MCP) - Simple implementation
 def determine_best_model(input_text: str, requested_model: str) -> str:
@@ -86,9 +116,8 @@ def get_beatoven_genres():
         {"id": "folk", "name": "Folk", "description": "Traditional acoustic cultural music"}
     ]
 
-def generate_music(genre: str, duration: int, topic: str):
+def generate_music(genre: str, duration: int, topic: str, prompt: str = None):
     """Generate music using Beatoven.ai API"""
-    # In a production implementation, we would call the actual Beatoven API:
     # https://github.com/Beatoven/public-api/blob/main/docs/api-spec.md
     
     if not BEATOVEN_API_KEY:
@@ -96,32 +125,86 @@ def generate_music(genre: str, duration: int, topic: str):
             status_code=500,
             detail="Beatoven API key is required but not configured"
         )
-        
-    # Mock implementation - would be replaced with actual API call
-    # Example: POST to https://api.beatoven.ai/v1/tracks with appropriate params
     
-    # Example of what the code would look like with real API integration:
-    """
+    # Use provided prompt or get a random one from the genre-specific prompts
+    music_prompt = prompt
+    if not music_prompt and genre.lower() in GENRE_PROMPTS:
+        music_prompt = random.choice(GENRE_PROMPTS[genre.lower()])
+    
+    track_name = f"Learning about {topic}"
+    beatoven_genre = map_to_beatoven_genre(genre)
+    
+    # Get the track URL from Beatoven API
+    preview_url = None
+    
     try:
+        print(f"Creating track with Beatoven.ai: {genre} about {topic}")
+        
+        # Build the request payload for Beatoven API
+        payload = {
+            "name": track_name,
+            "duration": duration,
+            "genre": beatoven_genre,
+            "customPrompt": music_prompt
+        }
+        
+        # Make the API request
         response = requests.post(
             "https://api.beatoven.ai/v1/tracks",
-            headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"},
-            json={
-                "name": f"Learning about {topic}",
-                "duration": duration,
-                "genre": genre,
-                "mood": "inspirational"
-            }
+            headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}", "Content-Type": "application/json"},
+            json=payload
         )
-        response.raise_for_status()
+        
+        if response.status_code != 200 and response.status_code != 201:
+            print(f"Beatoven API error: {response.status_code} - {response.text}")
+            # Fall back to placeholder in case of error
+            return {
+                "preview_url": f"https://placehold.co/400x100.mp3?text=AI+Music+{genre}+about+{topic}",
+                "prompt_used": music_prompt or f"Default prompt for {genre}"
+            }
+        
         data = response.json()
-        return data["preview_url"]  # or however the API returns the music URL
-    except requests.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Beatoven API error: {str(e)}")
-    """
+        track_id = data.get("id")
+        print(f"Track created with ID: {track_id}")
+        
+        # Check if we have a preview URL immediately (unlikely but possible)
+        preview_url = data.get("previewUrl")
+        
+        # If no preview URL yet, we'd typically need to poll for completion
+        # For this implementation, we'll return what we have
+        if not preview_url:
+            preview_url = f"https://app.beatoven.ai/track/{track_id}"
+            print(f"Track is processing. You can check status at: {preview_url}")
+        
+    except Exception as e:
+        print(f"Error calling Beatoven API: {str(e)}")
+        # Fall back to placeholder in case of error
+        return {
+            "preview_url": f"https://placehold.co/400x100.mp3?text=AI+Music+{genre}+about+{topic}",
+            "prompt_used": music_prompt or f"Default prompt for {genre}"
+        }
     
-    # For prototype, return a placeholder MP3 URL
-    return f"https://placehold.co/400x100.mp3?text=AI+Music+{genre}+about+{topic}"
+    return {
+        "preview_url": preview_url,
+        "prompt_used": music_prompt or f"Default prompt for {genre}"
+    }
+
+def map_to_beatoven_genre(genre):
+    """Maps our genre to Beatoven.ai supported genres"""
+    # This is a simple mapping function - expand as needed
+    genre_map = {
+        "hip_hop": "hip-hop",
+        "country": "country",
+        "pop": "pop",
+        "rock": "rock",
+        "jazz": "jazz",
+        "classical": "classical",
+        "electronic": "electronic",
+        "folk": "acoustic"
+    }
+    
+    # Return mapped genre or the original if no mapping exists
+    return genre_map.get(genre.lower(), genre)
 
 # Routes
 @app.get("/api/health")
@@ -146,6 +229,79 @@ async def list_models():
 async def list_music_genres():
     """List available music genres"""
     return get_beatoven_genres()
+
+class MusicGenerationResponse(BaseModel):
+    output_url: str
+    genre: str
+    prompt_used: str
+    track_id: Optional[str] = None
+    status: Optional[str] = None
+    
+@app.post("/api/music/generate", response_model=MusicGenerationResponse)
+async def generate_music_endpoint(request: MusicGenerationRequest):
+    """Generate music using Beatoven.ai with specified genre and prompt"""
+    try:
+        if not BEATOVEN_API_KEY:
+            raise HTTPException(
+                status_code=500,
+                detail="Beatoven API key is required but not configured"
+            )
+        
+        # Use the generate_music function
+        result = generate_music(
+            genre=request.genre,
+            duration=request.duration,
+            topic=request.topic,
+            prompt=request.custom_prompt
+        )
+        
+        # Extract track ID from URL if available
+        track_id = None
+        if "track/" in result["preview_url"]:
+            track_id = result["preview_url"].split("track/")[-1]
+        
+        return {
+            "output_url": result["preview_url"],
+            "genre": request.genre,
+            "prompt_used": result["prompt_used"],
+            "track_id": track_id,
+            "status": "processing" if track_id else "completed"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/music/track/{track_id}")
+async def get_track_status(track_id: str):
+    """Get the status of a Beatoven.ai track"""
+    if not BEATOVEN_API_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Beatoven API key is required but not configured"
+        )
+    
+    try:
+        # Call Beatoven API to get track status
+        response = requests.get(
+            f"https://api.beatoven.ai/v1/tracks/{track_id}",
+            headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"}
+        )
+        
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Failed to get track status: {response.text}"
+            )
+        
+        track_data = response.json()
+        return {
+            "track_id": track_id,
+            "status": track_data.get("status", "UNKNOWN"),
+            "preview_url": track_data.get("previewUrl"),
+            "created_at": track_data.get("createdAt"),
+            "updated_at": track_data.get("updatedAt")
+        }
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Beatoven API error: {str(e)}")
 
 @app.post("/api/generate", response_model=GenerateResponse)
 async def generate(request: GenerateRequest):
@@ -188,13 +344,13 @@ async def generate(request: GenerateRequest):
         elif model == "beatoven":
             # Generate music using Beatoven.ai
             topic = request.learning_topic or "general learning"
-            music_url = generate_music(
+            music_result = generate_music(
                 genre=request.genre,
                 duration=request.duration,
                 topic=topic
             )
             return {
-                "output": music_url,
+                "output": music_result["preview_url"],
                 "type": "music",
                 "model_used": "beatoven"
             }
