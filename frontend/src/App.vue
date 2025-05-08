@@ -1,140 +1,192 @@
 <template>
-  <div class="app-container">
-    <div v-if="isLoading" class="loading-overlay">
-      <div class="loading-spinner"></div>
-      <p>Generating your educational music...</p>
-    </div>
-    
-    <div class="app-content">
-      <div class="left-panel">
-        <div class="form-section">
-          <h2>What do you want to learn?</h2>
-          <div class="input-container">
+  <div>
+    <header class="header">
+      <div class="logo-container">
+        <img src="./assets/asu-logo.svg" alt="ASU Logo" class="asu-logo" />
+        <h1 class="site-title">Study Music</h1>
+      </div>
+      <button class="login-button">Login / Sign up</button>
+    </header>
+
+    <main class="main-content">
+      <div class="hero-section">
+        <h1 class="hero-title">Study Music</h1>
+        <p class="hero-tagline">Tagline</p>
+      </div>
+
+      <div class="how-it-works">
+        <h2 class="section-title">How it works</h2>
+        <div class="steps-container">
+          <div class="step">
+            <h3>Compose</h3>
+            <p>Boom! Your custom song is in the works. Want to tweak the lyrics or add a fun fact? Remix it 'til it's just right.</p>
+          </div>
+          <div class="step">
+            <h3>Prelude</h3>
+            <p>What are you learning? Drop your topic, pick a vibe (aka genre), and give us the scoop—we'll turn it into a jam.</p>
+          </div>
+          <div class="step">
+            <h3>Listen</h3>
+            <p>Hit play and vibe out to your learning anthem. Download it, share it, or turn it into a music video masterpiece!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="create-section">
+        <div class="input-section">
+          <div class="learning-input">
+            <label>What are you learning about?</label>
             <input 
-              v-model="learningTopic" 
-              placeholder="I'm trying to understand this chart in Economics" 
-              class="topic-input"
+              type="text" 
+              placeholder='"What is string theory?" or "Who was Gandhi?"' 
+              v-model="learningTopic"
             />
           </div>
-          
-          <div class="upload-section">
-            <p class="upload-label">upload for additional context (PDF, etc)</p>
-            <FileUpload @file-selected="handleFileUpload">upload</FileUpload>
+
+          <div class="file-upload-section">
+            <p>Or drag and drop a file (PDF, JPEG, etc)</p>
+            <FileUpload 
+              @file-selected="handleFileUpload" 
+              ref="fileUpload"
+            >Browse files</FileUpload>
+            <p v-if="uploadedFile" class="file-feedback">
+              <span class="file-success">✓</span> File ready for processing
+            </p>
           </div>
-          
+
           <div class="genre-section">
-            <h3>Genre</h3>
+            <label>Genre</label>
+            <div class="genre-search">
+              <input type="text" placeholder='"I like Taylor Swift" or "Kendrick Lamar"' v-model="genreInput" />
+            </div>
             <div class="genre-buttons">
               <button 
-                class="genre-button" 
-                :class="{ 'active': selectedGenre === 'country' }"
-                @click="selectGenre('country')"
+                v-for="genre in displayedGenres.slice(0, 12)" 
+                :key="genre.id" 
+                :class="['genre-btn', {'active': selectedGenre === genre.id}]" 
+                @click="selectGenre(genre.id)"
               >
-                Country
+                {{ genre.name }}
               </button>
               <button 
-                class="genre-button" 
-                :class="{ 'active': selectedGenre === 'hip_hop' }"
-                @click="selectGenre('hip_hop')"
+                v-if="displayedGenres.length > 12"
+                class="genre-btn more-btn"
+                @click="showMoreGenres = !showMoreGenres"
               >
-                Hip hop
+                {{ showMoreGenres ? 'Less' : 'More' }}
               </button>
-              <button 
-                class="genre-button" 
-                :class="{ 'active': selectedGenre === 'pop' }"
-                @click="selectGenre('pop')"
-              >
-                Pop
-              </button>
-              <button 
-                class="genre-button"
-                @click="showMoreGenres"
-              >
-                More
-              </button>
-            </div>
-          </div>
-          
-          <button class="compose-button" @click="processInput">Compose</button>
-        </div>
-      </div>
-      
-      <div class="right-panel">
-        <div class="output-section">
-          <div class="output-header">
-            <div class="thumbnail">
-              <div class="placeholder-thumbnail">
-                image for thumbnail of video
-              </div>
             </div>
             
+            <div v-if="showMoreGenres" class="genre-buttons additional-genres">
+              <button 
+                v-for="genre in displayedGenres.slice(12)" 
+                :key="genre.id" 
+                :class="['genre-btn', {'active': selectedGenre === genre.id}]" 
+                @click="selectGenre(genre.id)"
+              >
+                {{ genre.name }}
+              </button>
+            </div>
+          </div>
+
+          <button class="compose-btn" @click="generateMusic">Compose</button>
+        </div>
+
+        <div class="output-section">
+          <div class="song-recommendation">
+            <div class="song-controls">
+              <button class="control-btn"><i class="icon-shuffle"></i></button>
+              <button 
+                class="control-btn play-btn"
+                @click="togglePlayback"
+              >
+                <i :class="isPlaying ? 'icon-pause' : 'icon-play'"></i>
+              </button>
+            </div>
             <div class="song-info">
-              <h3 class="song-info-title">the why</h3>
-              <p>Summary of results</p>
+              <div class="song-title-section">
+                <h4>{{ songTitle || 'Song Title' }}</h4>
+                <span class="duration">{{ formattedDuration }}</span>
+              </div>
+              <p class="song-description">{{ songDescription }}</p>
+            </div>
+            <div class="album-art">
+              <img :src="albumArt" alt="Album art" />
+            </div>
+          </div>
+
+          <div class="lyrics-section">
+            <div class="lyrics-header">
+              <h3>Lyrics</h3>
+              <button 
+                class="expand-btn"
+                @click="lyricsExpanded = !lyricsExpanded"
+              >
+                <i :class="lyricsExpanded ? 'icon-collapse' : 'icon-expand'"></i>
+              </button>
+            </div>
+            <div 
+              class="lyrics-content"
+              :class="{ 'lyrics-expanded': lyricsExpanded }"
+            >
+              <p v-if="lyrics">{{ lyrics }}</p>
+              <p v-else class="placeholder-text">Lyrics will appear here after generating music</p>
             </div>
           </div>
           
-          <h3 class="song-title">{{ songTitle || 'Song title' }}</h3>
+          <audio 
+            ref="audioPlayer" 
+            :src="audioUrl" 
+            @timeupdate="updateProgress" 
+            @loadedmetadata="onAudioLoaded"
+            @ended="onAudioEnded"
+            @error="onAudioError"
+            style="display: none;"
+          ></audio>
           
-          <div class="video-player">
-            <template v-if="videoUrl">
-              <video controls>
-                <source :src="videoUrl" type="video/mp4">
-                Your browser does not support the video tag.
-              </video>
-            </template>
-            <template v-else-if="audioUrl">
-              <div class="audio-container">
-                <div class="play-button-overlay" @click="toggleAudio">
-                  <span class="play-icon">{{ isAudioPlaying ? '❚❚' : '▶' }}</span>
-                  <span class="play-text">{{ isAudioPlaying ? 'Pause' : 'Play' }}</span>
-                </div>
-                <audio ref="audioPlayer" :src="audioUrl" @ended="audioEnded" class="hidden-audio"></audio>
-                <div class="audio-placeholder">
-                  {{ isAudioPlaying ? 'Now playing...' : 'Music track available' }}
-                </div>
+          <div class="player-controls">
+            <div class="control-buttons">
+              <button class="control-btn"><i class="icon-shuffle"></i></button>
+              <button class="control-btn" @click="skipBackward"><i class="icon-prev"></i></button>
+              <button 
+                class="control-btn play-btn"
+                @click="togglePlayback"
+              >
+                <i :class="isPlaying ? 'icon-pause' : 'icon-play'"></i>
+              </button>
+              <button class="control-btn" @click="skipForward"><i class="icon-next"></i></button>
+              <button 
+                class="control-btn"
+                :class="{ 'active': isLooping }"
+                @click="toggleLoop"
+              >
+                <i class="icon-repeat"></i>
+              </button>
+            </div>
+            <div class="progress-bar">
+              <span class="current-time">{{ formattedCurrentTime }}</span>
+              <div 
+                class="progress-track"
+                @click="seekAudio"
+                ref="progressTrack"
+              >
+                <div 
+                  class="progress-filled"
+                  :style="{ width: `${progressPercentage}%` }"
+                ></div>
               </div>
-            </template>
-            <template v-else>
-              <div class="play-button-overlay">
-                <span class="play-icon">▶</span>
-                <span class="play-text">play button</span>
-              </div>
-              <div class="video-placeholder">
-                music video
-              </div>
-            </template>
-          </div>
-          
-          <div class="lyrics-section">
-            <h3>Lyrics</h3>
-            <p v-if="lyricsText" class="lyrics-content">{{ lyricsText }}</p>
-            <p v-else-if="output && outputType === 'text'" class="lyrics-content">{{ output }}</p>
-            <p v-else class="lyrics-content placeholder-text">Your lyrics will appear here</p>
-          </div>
-          
-          <div class="action-buttons">
-            <button class="action-button" @click="downloadContent" :disabled="!audioUrl && !videoUrl">Download</button>
-            <button class="action-button" @click="shareContent" :disabled="!audioUrl && !videoUrl">Share</button>
-            <button class="action-button action-button-wide" @click="generateVideo" :disabled="!audioUrl || videoUrl">Turn into music video</button>
+              <span class="total-time">{{ formattedDuration }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- API Status indicator (keep this for development) -->
-  <div class="api-status-indicator">
-    <span>API Status: </span>
-    <span v-if="apiStatus === null">Checking...</span>
-    <span v-else-if="apiStatus === 'ok'" class="status-ok">Connected</span>
-    <span v-else class="status-error">Disconnected</span>
+    </main>
   </div>
 </template>
 
 <script>
-import config from './config'
 import FileUpload from './components/FileUpload.vue'
+import config from './config'
 
 export default {
   components: {
@@ -142,24 +194,69 @@ export default {
   },
   data() {
     return {
-      userInput: '',
       learningTopic: '',
-      selectedModel: 'beatoven', // Default to music generation
-      selectedGenre: 'hip_hop',  // Default to hip hop
-      selectedDuration: 60,
-      output: null,
-      outputType: 'text',
-      isLoading: false,
+      genreInput: '',
+      selectedGenre: 'hip-hop',
+      uploadedFile: null,
       apiUrl: config.apiUrl,
       apiStatus: null,
-      genres: [],
+      isLoading: false,
+      showMoreGenres: false,
+      lyricsExpanded: false,
+      // Song/music data
       songTitle: '',
-      videoUrl: '',
+      songDescription: 'The why, and how this will benefit you',
       audioUrl: '',
-      lyricsText: '',
-      uploadedFile: null,
-      uploadedFileName: '',
-      isAudioPlaying: false
+      lyrics: 'Psst, I see dead people\n(Mustard on the beat, ho)\nAyy, Mustard on the beat, ho',
+      isPlaying: false,
+      audioDuration: 63, // in seconds
+      currentAudioTime: 0, // in seconds
+      isLooping: false,
+      albumArt: './assets/placeholder-album.jpg',
+      // Available genres
+      genres: [
+        { id: 'country', name: 'Country' },
+        { id: 'pop', name: 'Pop' },
+        { id: 'hip-hop', name: 'Hip-hop' },
+        { id: 'rap', name: 'Rap' },
+        { id: 'heavy-metal', name: 'Heavy metal' },
+        { id: 'jazz', name: 'Jazz' },
+        { id: 'folk', name: 'Folk' },
+        { id: 'eletronic', name: 'Eletronic' },
+        { id: 'blues', name: 'Blues' },
+        { id: 'punk', name: 'Punk' },
+        { id: 'disco', name: 'Disco' },
+        { id: 'soul', name: 'Soul' },
+        { id: 'rock', name: 'Rock' },
+        { id: 'grunge', name: 'Grunge' },
+        { id: 'opera', name: 'Opera' },
+        { id: 'k-pop', name: 'K-pop' },
+        { id: 'rock-and-roll', name: 'Rock and roll' },
+      ]
+    }
+  },
+  computed: {
+    displayedGenres() {
+      // Filter genres based on search input, or return all if no input
+      if (this.genreInput.trim() === '') {
+        return this.genres;
+      }
+      return this.genres.filter(genre => 
+        genre.name.toLowerCase().includes(this.genreInput.toLowerCase())
+      );
+    },
+    
+    formattedCurrentTime() {
+      return this.formatTime(this.currentAudioTime);
+    },
+    
+    formattedDuration() {
+      return this.formatTime(this.audioDuration);
+    },
+    
+    progressPercentage() {
+      if (this.audioDuration === 0) return 0;
+      return (this.currentAudioTime / this.audioDuration) * 100;
     }
   },
   mounted() {
@@ -167,32 +264,31 @@ export default {
     this.checkApiHealth()
     // Check API health every 30 seconds
     setInterval(this.checkApiHealth, 30000)
-    
-    // Load available music genres
-    this.loadMusicGenres()
   },
   methods: {
-    selectGenre(genre) {
-      this.selectedGenre = genre
-    },
-    
-    showMoreGenres() {
-      // This would show a modal or expanded list of genres
-      alert('Additional genres coming soon!')
+    selectGenre(genreId) {
+      this.selectedGenre = genreId
     },
     
     handleFileUpload(file) {
       this.uploadedFile = file
-      this.uploadedFileName = file.name
-      console.log('File uploaded:', file.name)
-      
-      // In a real implementation, we might want to:
-      // 1. Show a preview of the file
-      // 2. Read text files to extract context
-      // 3. Send the file to the backend for processing
-      
-      // For simplicity, we'll just store the file and alert the user
-      alert(`File "${file.name}" selected for additional context`)
+      if (file) {
+        console.log('File uploaded:', file.name)
+        
+        // If the file is a text file, we could extract text content for context
+        if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            const text = e.target.result
+            console.log('Extracted text from file:', text.substring(0, 100) + '...')
+            // This text could be used to enhance the learning context
+            // In a real app, we might set this text as additional context for the API
+          }
+          reader.readAsText(file)
+        }
+      } else {
+        console.log('File upload cleared')
+      }
     },
     
     async checkApiHealth() {
@@ -214,45 +310,15 @@ export default {
       }
     },
     
-    async loadMusicGenres() {
-      try {
-        const endpoint = `${this.apiUrl}/music/genres`.replace('//', '/')
-        console.log('Loading music genres from:', endpoint)
-        
-        const response = await fetch(endpoint)
-        if (!response.ok) {
-          throw new Error('Failed to load music genres')
-        }
-        
-        this.genres = await response.json()
-        console.log('Available genres:', this.genres)
-      } catch (error) {
-        console.error('Error loading genres:', error)
-        // Use default genres if API call fails
-        this.genres = [
-          { id: 'pop', name: 'Pop' },
-          { id: 'rock', name: 'Rock' },
-          { id: 'jazz', name: 'Jazz' },
-          { id: 'classical', name: 'Classical' },
-          { id: 'hip_hop', name: 'Hip Hop' },
-          { id: 'country', name: 'Country' }
-        ]
-      }
-    },
-    
-    async processInput() {
+    async generateMusic() {
       if (!this.learningTopic.trim()) {
         alert('Please enter what you want to learn about!')
         return
       }
       
       this.isLoading = true
+      
       try {
-        // Automatically use learning topic as input if no specific user input
-        if (!this.userInput.trim()) {
-          this.userInput = `Create a song about ${this.learningTopic}`
-        }
-        
         // Use the API URL from environment variables
         const endpoint = `${this.apiUrl}/generate`.replace('//', '/')
         console.log('Making request to:', endpoint)
@@ -261,13 +327,11 @@ export default {
         if (this.uploadedFile) {
           const formData = new FormData()
           formData.append('file', this.uploadedFile)
-          formData.append('input', this.userInput)
-          formData.append('model', 'beatoven') 
           formData.append('learning_topic', this.learningTopic)
           formData.append('genre', this.selectedGenre)
-          formData.append('duration', this.selectedDuration)
+          formData.append('model', 'beatoven') 
           
-          console.log('Sending FormData with file:', this.uploadedFileName)
+          console.log('Sending FormData with file:', this.uploadedFile.name)
           
           const response = await fetch(endpoint, {
             method: 'POST',
@@ -286,11 +350,9 @@ export default {
         
         // Standard JSON request (no file upload)
         const requestBody = {
-          input: this.userInput,
-          model: 'beatoven', // Always use beatoven for music
           learning_topic: this.learningTopic,
           genre: this.selectedGenre,
-          duration: this.selectedDuration
+          model: 'beatoven' // Always use beatoven for music
         }
         
         console.log('Request payload:', requestBody)
@@ -312,483 +374,512 @@ export default {
         this.handleApiResponse(data)
       } catch (error) {
         console.error('Error:', error)
-        this.output = `Error processing request: ${error.message}`
-        this.outputType = 'text'
+        alert(`Error: ${error.message}`)
       } finally {
         this.isLoading = false
       }
     },
     
     handleApiResponse(data) {
-      // Handle different types of responses
-      this.output = data.output
-      this.outputType = data.type
-      
-      // If we get a music response, we would also have lyrics and a title
+      // Handle the music generation response
       if (data.type === 'music') {
         this.audioUrl = data.output
         this.songTitle = data.title || `Song about ${this.learningTopic}`
-        this.lyricsText = data.lyrics || 'Lyrics not available for this song.'
+        this.lyrics = data.lyrics || 'Lyrics not available for this song.'
+        this.songDescription = data.description || 'The why, and how this will benefit you'
         
-        // In a real app, we'd also handle video URL if available
-        this.videoUrl = data.video_url || ''
+        // If album art was generated
+        if (data.album_art) {
+          this.albumArt = data.album_art
+        }
+        
+        // Start playback when ready
+        this.$nextTick(() => {
+          const player = this.$refs.audioPlayer
+          if (player) {
+            player.load()
+            
+            // Auto-play after a short delay to ensure loading
+            setTimeout(() => {
+              this.isPlaying = true
+              player.play().catch(err => {
+                console.error('Error auto-playing:', err)
+                this.isPlaying = false
+              })
+            }, 500)
+          }
+        })
       }
     },
     
-    toggleAudio() {
-      if (!this.$refs.audioPlayer) return
+    togglePlayback() {
+      if (!this.audioUrl) {
+        console.log('No audio source available')
+        return
+      }
       
-      if (this.isAudioPlaying) {
-        this.$refs.audioPlayer.pause()
-      } else {
+      this.isPlaying = !this.isPlaying
+      
+      const player = this.$refs.audioPlayer
+      if (player) {
+        if (this.isPlaying) {
+          player.play().catch(err => {
+            console.error('Error playing audio:', err)
+            this.isPlaying = false
+          })
+        } else {
+          player.pause()
+        }
+      }
+    },
+    
+    formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '0:00'
+      
+      const mins = Math.floor(seconds / 60)
+      const secs = Math.floor(seconds % 60)
+      return `${mins}:${secs.toString().padStart(2, '0')}`
+    },
+    
+    updateProgress() {
+      const player = this.$refs.audioPlayer
+      if (player) {
+        this.currentAudioTime = player.currentTime
+      }
+    },
+    
+    onAudioLoaded() {
+      const player = this.$refs.audioPlayer
+      if (player) {
+        this.audioDuration = player.duration
+        console.log('Audio duration:', this.audioDuration)
+      }
+    },
+    
+    onAudioEnded() {
+      if (this.isLooping) {
         this.$refs.audioPlayer.play()
-      }
-      
-      this.isAudioPlaying = !this.isAudioPlaying
-    },
-    
-    audioEnded() {
-      this.isAudioPlaying = false
-    },
-    
-    downloadContent() {
-      if (this.audioUrl) {
-        // Create an anchor element and trigger download
-        const a = document.createElement('a')
-        a.href = this.audioUrl
-        a.download = `${this.songTitle || 'learning_song'}.mp3`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-      } else if (this.videoUrl) {
-        // Similar process for video
-        const a = document.createElement('a')
-        a.href = this.videoUrl
-        a.download = `${this.songTitle || 'learning_video'}.mp4`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-      }
-    },
-    
-    shareContent() {
-      // Use Web Share API if available
-      if (navigator.share) {
-        navigator.share({
-          title: this.songTitle || 'Learning Song',
-          text: 'Check out this educational song I created!',
-          url: this.audioUrl || this.videoUrl
-        })
-        .catch(err => {
-          console.error('Error sharing:', err)
-          this.fallbackShare()
-        })
       } else {
-        this.fallbackShare()
+        this.isPlaying = false
+        this.currentAudioTime = 0
       }
     },
     
-    fallbackShare() {
-      // Fallback for browsers without Web Share API
-      const shareText = `${this.songTitle || 'Learning Song'}: ${this.audioUrl || this.videoUrl}`
-      
-      // Copy to clipboard
-      navigator.clipboard.writeText(shareText)
-        .then(() => alert('Link copied to clipboard!'))
-        .catch(() => alert('Unable to copy to clipboard. The URL is: ' + (this.audioUrl || this.videoUrl)))
+    onAudioError(error) {
+      console.error('Audio playback error:', error)
+      this.isPlaying = false
     },
     
-    generateVideo() {
-      if (!this.audioUrl) return
+    seekAudio(event) {
+      const player = this.$refs.audioPlayer
+      if (!player) return
       
-      this.isLoading = true
+      const trackRect = this.$refs.progressTrack.getBoundingClientRect()
+      const clickPosition = event.clientX - trackRect.left
+      const clickPercentage = clickPosition / trackRect.width
       
-      // In a real implementation, we'd make an API call to generate a video
-      // For this prototype, we'll simulate it with a timeout
-      setTimeout(() => {
-        alert('Video generation is not implemented in this prototype. In a production version, this would send the audio to a video generation service.')
-        this.isLoading = false
-      }, 1500)
+      player.currentTime = clickPercentage * player.duration
+      this.currentAudioTime = player.currentTime
+    },
+    
+    skipForward() {
+      const player = this.$refs.audioPlayer
+      if (player) {
+        player.currentTime = Math.min(player.currentTime + 10, player.duration)
+      }
+    },
+    
+    skipBackward() {
+      const player = this.$refs.audioPlayer
+      if (player) {
+        player.currentTime = Math.max(player.currentTime - 10, 0)
+      }
+    },
+    
+    toggleLoop() {
+      this.isLooping = !this.isLooping
+      if (this.$refs.audioPlayer) {
+        this.$refs.audioPlayer.loop = this.isLooping
+      }
     }
   }
 }
 </script>
 
 <style>
-/* Reset and base styles */
+/* Global styles */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f0f0f0;
-  color: #333;
+  background-color: #f8f8f8;
 }
 
-.app-container {
-  min-height: 100vh;
+/* Header styles */
+.header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  background-color: #f0f0f0;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: white;
 }
 
-.app-content {
+.logo-container {
   display: flex;
-  width: 100%;
-  max-width: 1200px;
-  min-height: 600px;
-  background-color: #666;
+  align-items: center;
+}
+
+.asu-logo {
+  height: 40px;
+  margin-right: 1rem;
+}
+
+.site-title {
+  font-size: 1.5rem;
+  color: #212121;
+}
+
+.login-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #212121;
   border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  cursor: pointer;
+  font-weight: 500;
 }
 
-/* Left panel styles */
-.left-panel {
-  flex: 1;
-  background-color: #666;
-  color: white;
-  padding: 30px;
+/* Hero section */
+.hero-section {
+  text-align: center;
+  padding: 3rem 1rem;
 }
 
-.form-section {
-  max-width: 500px;
+.hero-title {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #212121;
+}
+
+.hero-tagline {
+  font-size: 1.5rem;
+  color: #424242;
+}
+
+/* How it works section */
+.how-it-works {
+  padding: 2rem 1rem;
+}
+
+.section-title {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #212121;
+  text-align: center;
+}
+
+.steps-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 2rem;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-.form-section h2 {
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-
-.input-container {
-  margin-bottom: 20px;
-}
-
-.topic-input {
-  width: 100%;
-  padding: 12px 15px;
-  font-size: 16px;
-  border: none;
-  border-radius: 10px;
+.step {
+  flex: 1;
+  padding: 1.5rem;
   background-color: white;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.upload-section {
-  margin: 30px 0;
-  padding: 20px;
-  border: 2px dashed white;
-  border-radius: 15px;
-  text-align: center;
+.step h3 {
+  margin-bottom: 1rem;
+  color: #212121;
 }
 
-.upload-label {
-  margin-bottom: 15px;
+.step p {
+  color: #424242;
 }
 
-.upload-button {
-  background-color: #7c4dff;
+/* Create section */
+.create-section {
+  display: flex;
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.input-section {
+  flex: 1;
+  padding: 2rem;
+  background-color: #666666;
+  border-radius: 12px;
   color: white;
+}
+
+.learning-input, .file-upload-section, .genre-section {
+  margin-bottom: 2rem;
+}
+
+.learning-input label, .genre-section label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.learning-input input, .genre-search input {
+  width: 100%;
+  padding: 0.75rem 1rem;
   border: none;
-  border-radius: 20px;
-  padding: 8px 25px;
-  font-size: 16px;
-  cursor: pointer;
+  border-radius: 8px;
+  font-size: 1rem;
 }
 
-.genre-section {
-  margin: 30px 0;
+.file-upload-section {
+  text-align: center;
+  margin: 1.5rem 0;
 }
 
-.genre-section h3 {
-  margin-bottom: 15px;
-  font-size: 20px;
+.file-feedback {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: white;
+}
+
+.file-success {
+  color: #4caf50;
+  font-weight: bold;
+  margin-right: 0.5rem;
 }
 
 .genre-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
-  margin-bottom: 30px;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
-.genre-button {
-  flex: 1 0 calc(33% - 15px);
-  padding: 15px 10px;
+.genre-btn {
+  padding: 0.5rem 1rem;
   background-color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 16px;
+  border-radius: 20px;
   cursor: pointer;
-  min-width: 120px;
-  color: #333;
+  color: #212121;
+  font-size: 0.9rem;
+  transition: all 0.2s ease-in-out;
 }
 
-.genre-button.active {
+.additional-genres {
+  margin-top: 0.75rem;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.genre-btn.active {
   background-color: #7c4dff;
   color: white;
 }
 
-.compose-button {
+.genre-btn.more-btn {
+  background-color: #e0e0e0;
+}
+
+.compose-btn {
   width: 100%;
-  padding: 15px;
+  padding: 0.75rem;
   background-color: #7c4dff;
   color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 18px;
-  font-weight: bold;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 20px;
+  margin-top: 1rem;
 }
 
-/* Right panel styles */
-.right-panel {
+/* Output section */
+.output-section {
   flex: 1;
   background-color: white;
-  padding: 20px;
-  overflow-y: auto;
+  border-radius: 12px;
+  padding: 2rem;
 }
 
-.output-section {
-  padding: 20px;
-}
-
-.output-header {
+.song-recommendation {
   display: flex;
-  margin-bottom: 20px;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
-.thumbnail {
-  width: 150px;
-  height: 120px;
-  margin-right: 15px;
+.song-controls {
+  display: flex;
+  flex-direction: column;
 }
 
-.placeholder-thumbnail {
-  width: 100%;
-  height: 100%;
+.control-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #212121;
+  padding: 0.5rem;
+}
+
+.play-btn {
   background-color: #7c4dff;
   color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  padding: 10px;
-  border-radius: 10px;
 }
 
 .song-info {
   flex: 1;
-  padding: 10px;
-  border: 1px solid #eee;
-  border-radius: 10px;
 }
 
-.song-info-title {
-  margin-bottom: 10px;
+.song-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
 }
 
-.song-title {
-  margin: 20px 0 15px 0;
+.duration {
+  color: #757575;
+  font-size: 0.9rem;
 }
 
-.video-player {
-  position: relative;
-  width: 100%;
-  height: 0;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
-  background-color: #f4ecff;
-  border-radius: 10px;
-  margin-bottom: 20px;
+.song-description {
+  color: #424242;
+}
+
+.album-art {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
-.play-button-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  z-index: 2;
-}
-
-.play-icon {
-  font-size: 48px;
-  margin-bottom: 10px;
-}
-
-.video-placeholder, .audio-placeholder {
-  position: absolute;
-  top: 0;
-  left: 0;
+.album-art img {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-}
-
-.audio-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.hidden-audio {
-  display: none;
+  object-fit: cover;
 }
 
 .lyrics-section {
-  border: 1px solid #eee;
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
-  min-height: 150px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  background-color: #fffde7;
 }
 
-.lyrics-content {
-  margin-top: 10px;
-  white-space: pre-line;
-}
-
-.placeholder-text {
-  color: #999;
-  font-style: italic;
-}
-
-.action-buttons {
+.lyrics-header {
   display: flex;
   justify-content: space-between;
-  gap: 15px;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
-.action-button {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  background-color: white;
-  font-size: 16px;
+.expand-btn {
+  background: none;
+  border: none;
   cursor: pointer;
 }
 
-.action-button-wide {
-  flex: 2;
+.lyrics-content {
+  white-space: pre-line;
+  max-height: 150px;
+  overflow-y: hidden;
+  transition: max-height 0.3s ease;
 }
 
-.action-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.lyrics-expanded {
+  max-height: 500px;
+  overflow-y: auto;
 }
 
-/* API status indicator (hidden in production) */
-.api-status-indicator {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 5px 10px;
-  border-radius: 5px;
-  font-size: 12px;
-  z-index: 1000;
+.player-controls {
+  padding: 1rem 0;
 }
 
-.status-ok {
-  color: #4caf50;
-}
-
-.status-error {
-  color: #f44336;
-}
-
-/* Loading overlay */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
+.control-buttons {
   display: flex;
-  flex-direction: column;
   justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.progress-bar {
+  display: flex;
   align-items: center;
-  z-index: 1000;
-  color: white;
+  gap: 1rem;
 }
 
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #7c4dff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+.current-time, .total-time {
+  font-size: 0.9rem;
+  color: #757575;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.progress-track {
+  flex: 1;
+  height: 4px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 900px) {
-  .app-content {
+.progress-filled {
+  width: 20%;
+  height: 100%;
+  background-color: #7c4dff;
+  border-radius: 2px;
+}
+
+/* Media queries */
+@media (max-width: 992px) {
+  .create-section {
     flex-direction: column;
   }
   
-  .left-panel, .right-panel {
-    width: 100%;
-  }
-  
-  .genre-button {
-    flex: 1 0 calc(50% - 10px);
-  }
-  
-  .action-buttons {
-    flex-wrap: wrap;
-  }
-  
-  .action-button {
-    flex: 1 0 calc(50% - 10px);
-  }
-  
-  .action-button-wide {
-    flex: 1 0 100%;
-    order: -1;
-    margin-bottom: 10px;
+  .steps-container {
+    flex-direction: column;
   }
 }
 
-@media (max-width: 600px) {
-  .genre-button {
-    flex: 1 0 100%;
-  }
-  
-  .output-header {
-    flex-direction: column;
-  }
-  
-  .thumbnail {
-    width: 100%;
-    margin-right: 0;
-    margin-bottom: 15px;
-  }
+/* Icon placeholders - would be replaced with actual icons */
+.icon-shuffle:after { content: "⤨"; }
+.icon-play:after { content: "▶"; }
+.icon-pause:after { content: "⏸"; }
+.icon-prev:after { content: "◀◀"; }
+.icon-next:after { content: "▶▶"; }
+.icon-repeat:after { content: "🔁"; }
+.icon-expand:after { content: "▼"; }
+.icon-collapse:after { content: "▲"; }
+
+/* Active state for control buttons */
+.control-btn.active {
+  color: #7c4dff;
+}
+
+/* Placeholder text styling */
+.placeholder-text {
+  color: #aaa;
+  font-style: italic;
 }
 </style>
