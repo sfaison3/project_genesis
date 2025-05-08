@@ -6,6 +6,7 @@ import uvicorn
 import os
 import requests
 import random
+import time
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -70,6 +71,9 @@ class GenerateResponse(BaseModel):
     output: str
     type: str  # "text", "image", "video", "music"
     model_used: str
+    title: Optional[str] = None
+    lyrics: Optional[str] = None
+    video_url: Optional[str] = None
 
 class MusicGenreOption(BaseModel):
     id: str
@@ -116,7 +120,7 @@ def get_beatoven_genres():
         {"id": "folk", "name": "Folk", "description": "Traditional acoustic cultural music"}
     ]
 
-def generate_music(genre: str, duration: int, topic: str, prompt: str = None):
+def generate_music(genre: str, duration: int, topic: str, prompt: str = None, poll_for_completion: bool = False):
     """Generate music using Beatoven.ai API"""
     # https://github.com/Beatoven/public-api/blob/main/docs/api-spec.md
     
@@ -136,6 +140,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None):
     
     # Get the track URL from Beatoven API
     preview_url = None
+    track_id = None
     
     try:
         print(f"Creating track with Beatoven.ai: {genre} about {topic}")
@@ -160,7 +165,10 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None):
             # Fall back to placeholder in case of error
             return {
                 "preview_url": f"https://placehold.co/400x100.mp3?text=AI+Music+{genre}+about+{topic}",
-                "prompt_used": music_prompt or f"Default prompt for {genre}"
+                "prompt_used": music_prompt or f"Default prompt for {genre}",
+                "track_id": None,
+                "title": track_name,
+                "lyrics": f"Lyrics about {topic} in {genre} style would appear here."
             }
         
         data = response.json()
@@ -170,24 +178,140 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None):
         # Check if we have a preview URL immediately (unlikely but possible)
         preview_url = data.get("previewUrl")
         
-        # If no preview URL yet, we'd typically need to poll for completion
-        # For this implementation, we'll return what we have
+        # If poll_for_completion is True, wait for the track to be ready
+        if poll_for_completion and track_id:
+            max_attempts = 10
+            attempt = 0
+            wait_time = 3  # Initial wait time in seconds
+            
+            while attempt < max_attempts and (not preview_url or not preview_url.endswith('.mp3')):
+                print(f"Polling for track completion, attempt {attempt+1}/{max_attempts}")
+                time.sleep(wait_time)
+                
+                # Exponential backoff - increase wait time gradually
+                wait_time = min(wait_time * 1.5, 15)  # Cap at 15 seconds
+                
+                # Check track status
+                try:
+                    status_response = requests.get(
+                        f"https://api.beatoven.ai/v1/tracks/{track_id}",
+                        headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"}
+                    )
+                    
+                    if status_response.status_code == 200:
+                        track_data = status_response.json()
+                        status = track_data.get("status")
+                        preview_url = track_data.get("previewUrl")
+                        
+                        print(f"Track status: {status}, Preview URL: {preview_url}")
+                        
+                        if status == "COMPLETED" and preview_url and preview_url.endswith('.mp3'):
+                            print("Track is ready!")
+                            break
+                        elif status in ["FAILED", "ERROR"]:
+                            print(f"Track generation failed with status: {status}")
+                            break
+                    else:
+                        print(f"Failed to get track status: {status_response.status_code}")
+                
+                except Exception as e:
+                    print(f"Error checking track status: {str(e)}")
+                
+                attempt += 1
+        
+        # If no preview URL yet, use the track page URL
         if not preview_url:
             preview_url = f"https://app.beatoven.ai/track/{track_id}"
             print(f"Track is processing. You can check status at: {preview_url}")
+            
+        # If the URL isn't an MP3, try to get a direct download URL from the HTML page (not implemented here)
+        if preview_url and not preview_url.endswith('.mp3'):
+            print(f"Note: Preview URL is not a direct MP3 link: {preview_url}")
+            
+        # Generate lyrics about the topic (would come from an LLM in production)
+        # This is a placeholder for now
+        lyrics = generate_lyrics_for_topic(topic, genre)
         
     except Exception as e:
         print(f"Error calling Beatoven API: {str(e)}")
         # Fall back to placeholder in case of error
         return {
             "preview_url": f"https://placehold.co/400x100.mp3?text=AI+Music+{genre}+about+{topic}",
-            "prompt_used": music_prompt or f"Default prompt for {genre}"
+            "prompt_used": music_prompt or f"Default prompt for {genre}",
+            "track_id": None,
+            "title": track_name,
+            "lyrics": f"Lyrics about {topic} in {genre} style would appear here."
         }
     
     return {
         "preview_url": preview_url,
-        "prompt_used": music_prompt or f"Default prompt for {genre}"
+        "prompt_used": music_prompt or f"Default prompt for {genre}",
+        "track_id": track_id,
+        "title": track_name,
+        "lyrics": generate_lyrics_for_topic(topic, genre)
     }
+
+
+def generate_lyrics_for_topic(topic: str, genre: str) -> str:
+    """Generate lyrics for a given topic and genre.
+    
+    In a real implementation, this would call an LLM like OpenAI's o4-mini.
+    For now, we'll return a simple template.
+    """
+    if genre.lower() == "hip_hop":
+        return f"""
+[Verse 1]
+Listen up, let me tell you 'bout {topic}
+Knowledge flowing, can't nobody stop it
+Breaking it down so your mind can process
+Learning new things, that's how we progress
+
+[Chorus]
+{topic.capitalize()}, yeah, that's what we're learning today
+{topic.capitalize()}, understand it in a whole new way
+{topic.capitalize()}, knowledge is the power we seek
+{topic.capitalize()}, now you're at the learning peak
+
+[Verse 2]
+Don't just memorize, make sure you understand
+This knowledge right here will help you expand
+Your mind, your world, how you comprehend
+With {topic} skills, there's no limit to where you can ascend
+"""
+    elif genre.lower() == "country":
+        return f"""
+[Verse 1]
+Sitting here thinking 'bout {topic}
+Like a sunrise over fields of grain
+The lessons learned are never forgotten
+Knowledge like rain after a summer drought
+
+[Chorus]
+Oh, {topic}
+Teaching us about this world we're in
+Oh, {topic}
+Where learning and living begin
+
+[Verse 2]
+Take my hand, let's walk this road together
+Understanding grows like wildflowers in spring
+The wisdom of {topic} lasts forever
+These are the lessons worth remembering
+"""
+    else:
+        return f"""
+[Verse]
+Let me tell you about {topic}
+A fascinating subject to explore
+The more you learn, the more you grow
+Understanding what it's all for
+
+[Chorus]
+{topic.capitalize()}, {topic.capitalize()}
+Knowledge to help you on your way
+{topic.capitalize()}, {topic.capitalize()}
+Learning something new today
+"""
 
 def map_to_beatoven_genre(genre):
     """Maps our genre to Beatoven.ai supported genres"""
@@ -236,6 +360,8 @@ class MusicGenerationResponse(BaseModel):
     prompt_used: str
     track_id: Optional[str] = None
     status: Optional[str] = None
+    title: Optional[str] = None
+    lyrics: Optional[str] = None
     
 @app.post("/api/music/generate", response_model=MusicGenerationResponse)
 async def generate_music_endpoint(request: MusicGenerationRequest):
@@ -247,25 +373,32 @@ async def generate_music_endpoint(request: MusicGenerationRequest):
                 detail="Beatoven API key is required but not configured"
             )
         
-        # Use the generate_music function
+        # Use the generate_music function with polling enabled
         result = generate_music(
             genre=request.genre,
             duration=request.duration,
             topic=request.topic,
-            prompt=request.custom_prompt
+            prompt=request.custom_prompt,
+            poll_for_completion=True  # Try to wait for the track to complete
         )
         
-        # Extract track ID from URL if available
-        track_id = None
-        if "track/" in result["preview_url"]:
+        # Extract track ID from URL if available and not already included
+        track_id = result.get("track_id")
+        if not track_id and "track/" in result["preview_url"]:
             track_id = result["preview_url"].split("track/")[-1]
+        
+        # Determine status based on URL type
+        is_completed = result["preview_url"].endswith(".mp3")
+        status = "completed" if is_completed else "processing"
         
         return {
             "output_url": result["preview_url"],
             "genre": request.genre,
             "prompt_used": result["prompt_used"],
             "track_id": track_id,
-            "status": "processing" if track_id else "completed"
+            "status": status,
+            "title": result.get("title", f"Learning about {request.topic}"),
+            "lyrics": result.get("lyrics", "Lyrics are being generated...")
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -293,12 +426,32 @@ async def get_track_status(track_id: str):
             )
         
         track_data = response.json()
+        
+        # Extract track name and genre for generating lyrics
+        track_name = track_data.get("name", "")
+        track_genre = track_data.get("genre", "")
+        
+        # Try to extract topic from track name
+        topic = "general learning"
+        if track_name.startswith("Learning about "):
+            topic = track_name[len("Learning about "):]
+        
+        # Generate lyrics for the track
+        lyrics = generate_lyrics_for_topic(topic, track_genre)
+        
+        # Check if track is completed and has a preview URL
+        is_completed = track_data.get("status") == "COMPLETED"
+        preview_url = track_data.get("previewUrl")
+        
         return {
             "track_id": track_id,
             "status": track_data.get("status", "UNKNOWN"),
-            "preview_url": track_data.get("previewUrl"),
+            "preview_url": preview_url,
             "created_at": track_data.get("createdAt"),
-            "updated_at": track_data.get("updatedAt")
+            "updated_at": track_data.get("updatedAt"),
+            "title": track_name,
+            "lyrics": lyrics,
+            "is_ready": is_completed and preview_url and preview_url.endswith('.mp3')
         }
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Beatoven API error: {str(e)}")
@@ -347,12 +500,19 @@ async def generate(request: GenerateRequest):
             music_result = generate_music(
                 genre=request.genre,
                 duration=request.duration,
-                topic=topic
+                topic=topic,
+                poll_for_completion=True  # Try to wait for the track to complete
             )
+            
+            # Create a more comprehensive response
             return {
                 "output": music_result["preview_url"],
                 "type": "music",
-                "model_used": "beatoven"
+                "model_used": "beatoven",
+                "title": music_result.get("title", f"Learning about {topic}"),
+                "lyrics": music_result.get("lyrics", "Lyrics being generated..."),
+                # We could add a video URL in the future
+                "video_url": None
             }
         else:  # Text models (gemini or o4-mini)
             # In a real implementation, we would use the appropriate API key
