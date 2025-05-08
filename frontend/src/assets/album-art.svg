@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="300px" height="300px" viewBox="0 0 300 300" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Album Art</title>
+    <defs>
+        <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="gradient">
+            <stop stop-color="#1A1A2E" offset="0%"></stop>
+            <stop stop-color="#3A0CA3" offset="100%"></stop>
+        </linearGradient>
+        <radialGradient cx="50%" cy="50%" fx="50%" fy="50%" r="50%" id="glow">
+            <stop stop-color="#F72585" offset="0%"></stop>
+            <stop stop-color="#4CC9F0" offset="100%"></stop>
+        </radialGradient>
+    </defs>
+    <g id="Album-Art" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect fill="url(#gradient)" x="0" y="0" width="300" height="300" rx="8"></rect>
+        <circle fill="url(#glow)" opacity="0.8" cx="150" cy="150" r="80"></circle>
+        <circle fill="#FFFFFF" opacity="0.1" cx="150" cy="150" r="100"></circle>
+        <circle fill="#FFFFFF" opacity="0.1" cx="150" cy="150" r="120"></circle>
+        <circle fill="#FFFFFF" opacity="0.05" cx="150" cy="150" r="140"></circle>
+    </g>
+</svg>

@@ -111,7 +111,7 @@
               <p class="song-description">{{ songDescription }}</p>
             </div>
             <div class="album-art">
-              <img :src="albumArt" alt="Album art" />
+              <img :src="albumArt" alt="Album art" class="album-image" />
             </div>
           </div>
 
@@ -146,19 +146,21 @@
           
           <div class="player-controls">
             <div class="control-buttons">
-              <button class="control-btn"><i class="icon-shuffle"></i></button>
-              <button class="control-btn" @click="skipBackward"><i class="icon-prev"></i></button>
+              <button class="control-btn" aria-label="Shuffle"><i class="icon-shuffle"></i></button>
+              <button class="control-btn" @click="skipBackward" aria-label="Previous"><i class="icon-prev"></i></button>
               <button 
                 class="control-btn play-btn"
                 @click="togglePlayback"
+                aria-label="Play or Pause"
               >
                 <i :class="isPlaying ? 'icon-pause' : 'icon-play'"></i>
               </button>
-              <button class="control-btn" @click="skipForward"><i class="icon-next"></i></button>
+              <button class="control-btn" @click="skipForward" aria-label="Next"><i class="icon-next"></i></button>
               <button 
                 class="control-btn"
                 :class="{ 'active': isLooping }"
                 @click="toggleLoop"
+                aria-label="Repeat"
               >
                 <i class="icon-repeat"></i>
               </button>
@@ -187,6 +189,7 @@
 <script>
 import FileUpload from './components/FileUpload.vue'
 import config from './config'
+import albumArtImage from './assets/album-art.svg'
 
 export default {
   components: {
@@ -204,7 +207,7 @@ export default {
       showMoreGenres: false,
       lyricsExpanded: false,
       // Song/music data
-      songTitle: '',
+      songTitle: 'Song Title',
       songDescription: 'The why, and how this will benefit you',
       audioUrl: '',
       lyrics: 'Psst, I see dead people\n(Mustard on the beat, ho)\nAyy, Mustard on the beat, ho',
@@ -212,7 +215,7 @@ export default {
       audioDuration: 63, // in seconds
       currentAudioTime: 0, // in seconds
       isLooping: false,
-      albumArt: './assets/placeholder-album.jpg',
+      albumArt: albumArtImage,
       // Available genres
       genres: [
         { id: 'country', name: 'Country' },
@@ -619,7 +622,7 @@ body {
 .input-section {
   flex: 1;
   padding: 2rem;
-  background-color: #666666;
+  background-color: #212121;
   border-radius: 12px;
   color: white;
 }
@@ -688,7 +691,7 @@ body {
 }
 
 .genre-btn.active {
-  background-color: #7c4dff;
+  background-color: #8C1D40; /* ASU maroon */
   color: white;
 }
 
@@ -699,7 +702,7 @@ body {
 .compose-btn {
   width: 100%;
   padding: 0.75rem;
-  background-color: #7c4dff;
+  background-color: #000000;
   color: white;
   border: none;
   border-radius: 8px;
@@ -739,7 +742,7 @@ body {
 }
 
 .play-btn {
-  background-color: #7c4dff;
+  background-color: #8C1D40; /* ASU maroon */
   color: white;
   border-radius: 50%;
   width: 40px;
@@ -774,6 +777,7 @@ body {
   height: 80px;
   border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .album-art img {
@@ -782,12 +786,17 @@ body {
   object-fit: cover;
 }
 
+.album-image {
+  display: block;
+  max-width: 100%;
+}
+
 .lyrics-section {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 2rem;
-  background-color: #fffde7;
+  background-color: #FFF5D5; /* Light yellow to match design */
 }
 
 .lyrics-header {
@@ -822,7 +831,8 @@ body {
 .control-buttons {
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 2rem;
   margin-bottom: 1rem;
 }
 
@@ -847,7 +857,7 @@ body {
 .progress-filled {
   width: 20%;
   height: 100%;
-  background-color: #7c4dff;
+  background-color: #8C1D40; /* ASU maroon */
   border-radius: 2px;
 }
 
@@ -874,7 +884,7 @@ body {
 
 /* Active state for control buttons */
 .control-btn.active {
-  color: #7c4dff;
+  color: #8C1D40; /* ASU maroon */
 }
 
 /* Placeholder text styling */
