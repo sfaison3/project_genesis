@@ -2,11 +2,17 @@
 
 ## 🏆 Overview
 
-**Genesis** is a **multi-modal AI orchestration platform** enabling seamless switching between multiple AI models for image, video, and text generation through an **MCP (Model Context Protocol)** system.
+**Genesis Music Learning App** 
+
+ Our app allows users to generate custom songs about the topic of their choice in various genres to help them learn concepts and make learning more fun and engaging.
+ 
+As a learner, I want to generate custom songs and music videos about the topic I'm studying, in a genre I enjoy, so I can use rhythm, rhyme, and repetition to better remember key concepts and make learning feel fun and memorable.
+
+Instructional Designer: As a Instructional Designers, I want to generate custom songs and music videos about the topic that I know that students typically struggle with in a genre they enjoy, so they can use rhythm, rhyme, and repetition to better remember key concepts and make learning feel fun and memorable.
 
 It integrates **OpenAI's `gpt-image-1`**, **Google's `veo2` video model**, **Gemini**, and **OpenAI's `o4-mini`**, coordinated by the MCP to dynamically route requests to the best model for each input type.
 
-Built with a **JavaScript frontend** and **FastAPI backend**, using **MongoDB** for persistence, and **deployed on Render** for fast and reliable hosting.
+Built with a **Javascript Vue 3 frontend** and **FastAPI backend**, using **MongoDB** for persistence, and **deployed on Render** for fast and reliable hosting. We use the beatoven.ai API for music generation: https://github.com/Beatoven/public-api/blob/main/docs/api-spec.md
 
 This repository is the initial shell prototype for rapid development at **[Hackathon Name]** on **[Date]**.
 
@@ -19,6 +25,7 @@ This repository is the initial shell prototype for rapid development at **[Hacka
 - **AI Models:**
   - OpenAI `gpt-image-1` (image generation)
   - Google `veo2` (video generation)
+  - Beatoven.ai (music generation)
   - Gemini (LLM)
   - OpenAI `o4-mini` (LLM)
 - **MCP:** Model Context Protocol for AI model orchestration
@@ -37,6 +44,7 @@ flowchart TD
     MCP --> GPTImage1[OpenAI gpt-image-1]
     MCP --> Veo2[Google veo2]
     MCP --> Gemini
+    MCP --> Beatoven.ai
     MCP --> O4Mini[OpenAI o4-mini]
     API --> MongoDB
 ```

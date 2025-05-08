@@ -1,8 +1,8 @@
-# Genesis - Multi-modal AI Orchestration Platform
+# Genesis Music Learning App
 
-Repository for 1st ASU AI Spark Challenge
+Repository for ASU AI Spark Challenge
 
-Genesis is an AI orchestration platform that seamlessly switches between multiple AI models for image, video, and text generation.
+Genesis is a music learning app that helps users generate custom songs about topics they're studying. It leverages AI models to create educational content that makes learning more fun and engaging through rhythm, rhyme, and repetition.
 
 ## Project Structure
 
@@ -41,13 +41,16 @@ The frontend will proxy API requests to the backend, so both can run simultaneou
 
 - `GET /api/health` - Health check endpoint
 - `GET /api/models` - List available AI models
-- `POST /api/generate` - Generate content based on input
+- `GET /api/music/genres` - List available music genres
+- `POST /api/generate` - Generate learning content based on input
 
 ## Features
 
 - Model Context Protocol (MCP) that routes requests to the appropriate AI model
-- Support for text, image, and video generation
-- Interactive UI for submitting prompts and viewing results
+- Custom song generation using Beatoven.ai API for creating music in various genres
+- Support for text, image, and video generation alongside music
+- Interactive UI for creating educational content that makes learning engaging
+- Ability to specify learning topics, preferred genres, and song duration
 
 ## Deployment to Render
 
@@ -79,3 +82,4 @@ Alternatively, you can deploy manually:
      - `API_PORT`: 10000
      - `OPENAI_API_KEY`: Your OpenAI API Key
      - `GOOGLE_API_KEY`: Your Google API Key
+     - `BEATOVEN_API_KEY`: Your Beatoven.ai API Key
