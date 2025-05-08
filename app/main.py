@@ -11,6 +11,16 @@ load_dotenv()
 
 app = FastAPI(title="Genesis API", description="Multi-modal AI Orchestration Platform")
 
+# API Keys
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+# Check if API keys are available
+if not OPENAI_API_KEY:
+    print("Warning: OPENAI_API_KEY not found in environment variables")
+if not GOOGLE_API_KEY:
+    print("Warning: GOOGLE_API_KEY not found in environment variables")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -71,8 +81,20 @@ async def generate(request: GenerateRequest):
         # Determine which model to use via MCP
         model = determine_best_model(request.input, request.model)
         
+        # Check if required API keys are available
+        if model in ["gpt-image-1", "o4-mini"] and not OPENAI_API_KEY:
+            raise HTTPException(
+                status_code=500,
+                detail="OpenAI API key is required but not configured"
+            )
+        if model in ["veo2", "gemini"] and not GOOGLE_API_KEY:
+            raise HTTPException(
+                status_code=500,
+                detail="Google API key is required but not configured"
+            )
+        
         # This would call the actual AI services in production
-        # For now, return mock responses
+        # For now, return mock responses with API key indicators
         if model == "gpt-image-1":
             return {
                 "output": "https://placehold.co/600x400?text=AI+Generated+Image",
@@ -86,6 +108,8 @@ async def generate(request: GenerateRequest):
                 "model_used": "veo2"
             }
         else:  # Text models (gemini or o4-mini)
+            # In a real implementation, we would use the appropriate API key
+            api_key = OPENAI_API_KEY if model == "o4-mini" else GOOGLE_API_KEY
             return {
                 "output": f"AI Response via {model}: " + request.input,
                 "type": "text",

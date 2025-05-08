@@ -43,6 +43,8 @@
 </template>
 
 <script>
+import config from './config'
+
 export default {
   data() {
     return {
@@ -50,14 +52,22 @@ export default {
       selectedModel: 'auto',
       output: null,
       outputType: 'text',
-      isLoading: false
+      isLoading: false,
+      apiUrl: config.apiUrl
     }
+  },
+  mounted() {
+    console.log('API URL:', this.apiUrl)
   },
   methods: {
     async processInput() {
       this.isLoading = true
       try {
-        const response = await fetch('/api/generate', {
+        // Use the API URL from environment variables
+        const endpoint = `${this.apiUrl}/generate`.replace('//', '/')
+        console.log('Making request to:', endpoint)
+        
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -68,12 +78,17 @@ export default {
           })
         })
         
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.detail || 'API request failed')
+        }
+        
         const data = await response.json()
         this.output = data.output
         this.outputType = data.type // 'text', 'image', or 'video'
       } catch (error) {
         console.error('Error:', error)
-        this.output = 'Error processing request'
+        this.output = `Error processing request: ${error.message}`
         this.outputType = 'text'
       } finally {
         this.isLoading = false
