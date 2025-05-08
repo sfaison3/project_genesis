@@ -2,6 +2,13 @@
   <header>
     <h1>Genesis</h1>
     <h2>Multi-modal AI Orchestration Platform</h2>
+    <div class="api-status">
+      <span>API Status: </span>
+      <span v-if="apiStatus === null">Checking...</span>
+      <span v-else-if="apiStatus === 'ok'" class="status-ok">Connected</span>
+      <span v-else class="status-error">Disconnected</span>
+    </div>
+    <div v-if="apiStatus === 'ok'" class="hello-world">Hello World!</div>
   </header>
   
   <main>
@@ -53,13 +60,36 @@ export default {
       output: null,
       outputType: 'text',
       isLoading: false,
-      apiUrl: config.apiUrl
+      apiUrl: config.apiUrl,
+      apiStatus: null
     }
   },
   mounted() {
     console.log('API URL:', this.apiUrl)
+    this.checkApiHealth()
+    // Check API health every 30 seconds
+    setInterval(this.checkApiHealth, 30000)
   },
   methods: {
+    async checkApiHealth() {
+      try {
+        const endpoint = `${this.apiUrl}/health`.replace('//', '/')
+        console.log('Checking API health at:', endpoint)
+        
+        const response = await fetch(endpoint)
+        if (!response.ok) {
+          throw new Error('API health check failed')
+        }
+        
+        const data = await response.json()
+        this.apiStatus = data.status
+        console.log('API Status:', this.apiStatus)
+      } catch (error) {
+        console.error('Health check error:', error)
+        this.apiStatus = 'error'
+      }
+    },
+    
     async processInput() {
       this.isLoading = true
       try {
@@ -163,5 +193,30 @@ select {
 
 img, video {
   max-width: 100%;
+}
+
+.api-status {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.status-ok {
+  color: #2ecc71;
+  font-weight: bold;
+}
+
+.status-error {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.hello-world {
+  background-color: #3498db;
+  color: white;
+  padding: 0.5rem 1rem;
+  margin: 1rem auto;
+  border-radius: 4px;
+  display: inline-block;
+  font-weight: bold;
 }
 </style>
