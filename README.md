@@ -11,6 +11,10 @@ Genesis is an AI orchestration platform that seamlessly switches between multipl
 
 ## Getting Started
 
+### Environment Setup
+
+Create `.env` files in both the root directory, app directory, and frontend directory using the provided `.env.example` files as templates.
+
 ### Backend Setup
 
 ```bash
@@ -30,6 +34,8 @@ npm run dev
 ```
 
 The Vue.js frontend will be available at http://localhost:5173
+
+The frontend will proxy API requests to the backend, so both can run simultaneously on different ports.
 
 ## API Endpoints
 
