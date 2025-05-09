@@ -225,7 +225,7 @@ export default {
     return {
       learningTopic: '',
       genreInput: '',
-      selectedGenre: 'hip-hop',
+      selectedGenre: 'hip_hop',
       uploadedFile: null,
       apiUrl: config.apiUrl,
       apiStatus: null,
@@ -254,25 +254,25 @@ export default {
         expand: expandIcon,
         collapse: collapseIcon
       },
-      // Available genres
+      // Available genres - using underscore format to match Beatoven.ai API
       genres: [
         { id: 'country', name: 'Country' },
         { id: 'pop', name: 'Pop' },
-        { id: 'hip-hop', name: 'Hip-hop' },
+        { id: 'hip_hop', name: 'Hip-hop' },
         { id: 'rap', name: 'Rap' },
-        { id: 'heavy-metal', name: 'Heavy metal' },
+        { id: 'heavy_metal', name: 'Heavy metal' },
         { id: 'jazz', name: 'Jazz' },
         { id: 'folk', name: 'Folk' },
-        { id: 'eletronic', name: 'Eletronic' },
+        { id: 'electronic', name: 'Electronic' },
         { id: 'blues', name: 'Blues' },
         { id: 'punk', name: 'Punk' },
         { id: 'disco', name: 'Disco' },
         { id: 'soul', name: 'Soul' },
         { id: 'rock', name: 'Rock' },
         { id: 'grunge', name: 'Grunge' },
-        { id: 'opera', name: 'Opera' },
-        { id: 'k-pop', name: 'K-pop' },
-        { id: 'rock-and-roll', name: 'Rock and roll' },
+        { id: 'classical', name: 'Classical' },
+        { id: 'k_pop', name: 'K-pop' },
+        { id: 'rock_and_roll', name: 'Rock and roll' },
       ]
     }
   },
