@@ -90,11 +90,20 @@
             </div>
           </div>
 
-          <button class="compose-btn" @click="generateMusic" :disabled="isLoading">{{ isLoading ? 'Composing...' : 'Compose' }}</button>
+          <button class="compose-btn" @click="generateMusic" :disabled="isLoading || isGenerating">{{ buttonText }}</button>
         </div>
 
         <div class="output-section">
-          <div class="song-recommendation">
+          <!-- Music Generation Preloader -->
+          <div class="preloader-container" v-if="isGenerating">
+            <div class="preloader">
+              <div class="preloader-spinner"></div>
+              <p class="preloader-text">{{ generationStatus === 'processing' ? 'Creating your song...' : 'Initializing...' }}</p>
+              <p class="preloader-subtext">{{ getPreloaderMessage() }}</p>
+            </div>
+          </div>
+
+          <div class="song-recommendation" v-show="!isGenerating">
             <div class="song-controls">
               <button class="control-btn"><i class="icon-shuffle"></i></button>
               <button 
@@ -234,6 +243,10 @@ export default {
       apiUrl: config.apiUrl,
       apiStatus: null,
       isLoading: false,
+      isGenerating: false,
+      generationStatus: null, // null, 'started', 'processing', 'completed', 'error'
+      pollingInterval: null,
+      taskId: null,
       showMoreGenres: false,
       lyricsExpanded: true,
       usingGenericEndpoint: false, // Track which endpoint we're using
@@ -300,10 +313,23 @@ export default {
     formattedDuration() {
       return this.formatTime(this.audioDuration);
     },
-    
+
     progressPercentage() {
       if (this.audioDuration === 0) return 0;
       return (this.currentAudioTime / this.audioDuration) * 100;
+    },
+
+    buttonText() {
+      if (this.isLoading) return 'Initializing...';
+      if (this.isGenerating) {
+        switch (this.generationStatus) {
+          case 'started': return 'Starting generation...';
+          case 'processing': return 'Generating music...';
+          case 'completed': return 'Processing audio...';
+          default: return 'Composing...';
+        }
+      }
+      return 'Compose';
     },
     
     // We're now using inline SVG for the logo, so this property is no longer needed
@@ -634,6 +660,9 @@ export default {
           this.audioUrl = sampleAudioUrl;
         }
         
+        // End the generating state
+        this.isGenerating = false;
+
         // Only proceed with playback if we have a valid audio URL
         if (this.audioUrl) {
           // Start playback when ready
@@ -673,6 +702,9 @@ export default {
         this.lyrics = 'Lyrics not available due to an error processing the server response.';
         this.songDescription = 'AI-generated music (fallback)';
         
+        // End the generating state
+        this.isGenerating = false;
+
         // Try to play the fallback
         this.$nextTick(() => {
           const player = this.$refs.audioPlayer
@@ -1244,5 +1276,48 @@ body {
 .placeholder-text {
   color: #aaa;
   font-style: italic;
+}
+
+/* Preloader styles */
+.preloader-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.preloader {
+  text-align: center;
+  padding: 2rem;
+}
+
+.preloader-spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid #e0e0e0;
+  border-top: 5px solid #8C1D40; /* ASU maroon */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.preloader-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #212121;
+}
+
+.preloader-subtext {
+  font-size: 0.9rem;
+  color: #757575;
 }
 </style>
