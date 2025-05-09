@@ -62,7 +62,13 @@ COUNTRY_PROMPTS = [
 # Mapping genre to prompt lists
 GENRE_PROMPTS = {
     "hip_hop": HIP_HOP_PROMPTS,
-    "country": COUNTRY_PROMPTS
+    "rap": HIP_HOP_PROMPTS,  # Map rap to use hip hop prompts
+    "country": COUNTRY_PROMPTS,
+    "folk": COUNTRY_PROMPTS,  # Map folk to use country prompts
+    
+    # We'll add more genre-specific prompts as needed
+    # For now, these popular genres map to our existing prompts
+    # Other genres will use the generic prompt instead
 }
 
 # Add CORS middleware
@@ -156,15 +162,20 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     else:
         print("Using LIVE Beatoven.ai API for this request")
     
+    # Normalize genre format for consistent matching
+    normalized_genre = genre.lower().replace("-", "_")
+    
     # Use provided prompt or get a random one from the genre-specific prompts
     music_prompt = prompt
     if not music_prompt:
         # First check our preset prompts
-        if genre.lower() in GENRE_PROMPTS:
-            music_prompt = random.choice(GENRE_PROMPTS[genre.lower()])
+        if normalized_genre in GENRE_PROMPTS:
+            music_prompt = random.choice(GENRE_PROMPTS[normalized_genre])
         else:
             # For custom/unsupported genres, create a generic prompt that highlights the genre name
-            music_prompt = f"Create a {genre} style music that emphasizes the key elements of this genre. Make it suitable for learning about {topic}."
+            # Find the display name if possible
+            genre_display = genre.replace("_", " ").replace("-", " ").title()
+            music_prompt = f"Create a {genre_display} style music that emphasizes the key elements of this genre. Make it suitable for learning about {topic}."
     
     # Log the prompt we're using
     print(f"Using prompt for Beatoven.ai: '{music_prompt}'")
@@ -174,7 +185,8 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     
     # If the genre isn't in our mapping, default to a general genre like "pop"
     # But we'll keep the specific genre flavor through the custom prompt
-    if beatoven_genre == genre and genre.lower() not in ["pop", "rock", "jazz", "classical", "electronic", "hip-hop", "country", "acoustic"]:
+    supported_beatoven_genres = ["pop", "rock", "jazz", "classical", "electronic", "hip-hop", "country", "acoustic"]
+    if beatoven_genre not in supported_beatoven_genres:
         print(f"Genre '{genre}' not directly supported by Beatoven.ai, defaulting to 'pop' but using custom prompt")
         beatoven_genre = "pop"
     
@@ -1256,8 +1268,11 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
     
     # Create catchy hooks and repeated elements based on genre
     
+    # Normalize genre formats for consistent matching (replace hyphens with underscores)
+    normalized_genre = genre.lower().replace("-", "_")
+    
     # Generate genre-specific lyrics with educational facts and strong hooks
-    if genre.lower() in ["hip_hop", "hip-hop", "rap"]:
+    if normalized_genre in ["hip_hop", "rap"]:
         # Create a catchy hook phrase
         hook_phrase = f"Learn it ({short_topic}), know it ({short_topic}), own it!"
         
@@ -1299,7 +1314,7 @@ Your education journey is no time to rest
 {hook_phrase}
 Now you know about {topic}! (Drop the mic)
 """
-    elif genre.lower() in ["country", "folk"]:
+    elif normalized_genre in ["country", "folk"]:
         # Create a melodic refrain based on topic
         refrain = f"Oh, the wisdom of {short_topic}, stays with you forever more"
         
@@ -1348,7 +1363,7 @@ Sweet {topic}, knowledge that gives me a thrill
 {refrain}
 (Fade out with gentle humming)
 """
-    elif genre.lower() in ["rock", "heavy-metal", "punk", "grunge"]:
+    elif normalized_genre in ["rock", "heavy_metal", "punk", "grunge"]:
         # Create a powerful chant/anthem based on topic
         power_chant = f"{short_topic.upper()}! {short_topic.upper()}! KNOWLEDGE IS POWER!"
         
@@ -1396,7 +1411,7 @@ THE FACTS AND THE DATA YOU NEED TO KNOW
 (Final power chord)
 KNOWLEDGE ROCKS!
 """
-    elif genre.lower() in ["electronic", "eletronic", "disco", "edm"]:
+    elif normalized_genre in ["electronic", "eletronic", "disco", "edm"]:
         # Create a repetitive, danceable hook
         beat_hook = f"Learn-learn-learn the {short_topic} (Woo!)"
         
@@ -1499,20 +1514,44 @@ Understanding {topic} sets your mind free!
 
 def map_to_beatoven_genre(genre):
     """Maps our genre to Beatoven.ai supported genres"""
+    # First normalize the genre by converting to lowercase and replacing hyphens with underscores
+    normalized_genre = genre.lower().replace("-", "_")
+    
     # This is a simple mapping function - expand as needed
     genre_map = {
+        # Map normalized genres to Beatoven supported genres
         "hip_hop": "hip-hop",
+        "rap": "hip-hop",  # Map rap to hip-hop
         "country": "country",
         "pop": "pop",
         "rock": "rock",
+        "heavy_metal": "rock",  # Map heavy metal to rock
+        "punk": "rock",  # Map punk to rock
+        "grunge": "rock",  # Map grunge to rock
         "jazz": "jazz",
         "classical": "classical",
         "electronic": "electronic",
-        "folk": "acoustic"
+        "eletronic": "electronic",  # Handle common misspelling
+        "edm": "electronic",  # Map EDM to electronic
+        "disco": "electronic",  # Map disco to electronic
+        "folk": "acoustic",
+        "acoustic": "acoustic",
+        "soul": "jazz",  # Map soul to jazz as it's the closest match
+        "blues": "jazz",  # Map blues to jazz as it's the closest match
+        "k_pop": "pop"  # Map K-pop to pop
     }
     
-    # Return mapped genre or the original if no mapping exists
-    return genre_map.get(genre.lower(), genre)
+    # Also check with the original format in case we need it
+    result = genre_map.get(normalized_genre)
+    
+    # If no mapping found, try the original genre string or return the original
+    if result is None:
+        print(f"No direct mapping for genre '{genre}', using default")
+        # For unknown genres, return a safe default that Beatoven supports
+        result = genre_map.get(genre.lower(), "pop")
+        
+    print(f"Mapped genre '{genre}' to Beatoven genre '{result}'")
+    return result
 
 # Routes
 @app.get("/api/health")
