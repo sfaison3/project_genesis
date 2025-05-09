@@ -9,6 +9,7 @@ import os
 import requests
 import random
 import time
+import json
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -227,8 +228,24 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 # If we get a successful response, we need to extract the task_id from the response
                 if response.status_code == 200 or response.status_code == 201:
                     data = response.json()
+                    # Print the full response for debugging
+                    print("FULL BEATOVEN API RESPONSE:", json.dumps(data, indent=2))
+                    
                     # The initial track creation should also provide a task_id
                     task_id = data.get("task_id")  # Using task_id with underscore per API docs
+                    
+                    # If task_id not found in the response, look for other possible variations
+                    if not task_id:
+                        # Check alternative field names
+                        if "taskId" in data:
+                            task_id = data["taskId"]
+                            print("Found task ID in 'taskId' field")
+                        elif "id" in data and "_" in data["id"]:
+                            # The task_id might be inside the id field (format: UUID_number)
+                            task_id = data["id"]
+                            print(f"Using id field as task_id: {task_id}")
+                        else:
+                            print("WARNING: Could not find task_id in any expected field. Available fields:", list(data.keys()))
             except requests.exceptions.ConnectionError as conn_error:
                 # DNS resolution or connection issue - use fallback mode
                 print(f"Connection error to Beatoven API: {str(conn_error)}")
@@ -264,13 +281,32 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         
         data = response.json()
         track_id = data.get("id")
+        
         # Ensure we have the task_id (if we didn't get it previously)
         if not task_id:
+            # Try multiple possible field names for task_id
             task_id = data.get("task_id")
+            
+            # If we still don't have a task_id, check alternative fields
+            if not task_id:
+                if "taskId" in data:
+                    task_id = data["taskId"]
+                # Check if the ID itself might be the task ID (format: UUID_number)
+                elif track_id and "_" in track_id:
+                    task_id = track_id
+                # Create tasks endpoint might return the task_id in this format
+                elif "compositionTaskId" in data:
+                    task_id = data["compositionTaskId"]
             
         # Log the task_id to help with debugging
         print(f"Task ID: {task_id}")
         print(f"Track created with ID: {track_id}")
+        
+        # If we still don't have a task_id but have a track_id, we might need to append _1 to make it a task_id
+        # (Based on the example: "track_id": "80555995-62c1-4b73-ae83-f10e8aba2a7a", "task_id": "80555995-62c1-4b73-ae83-f10e8aba2a7a_1")
+        if not task_id and track_id:
+            task_id = f"{track_id}_1"
+            print(f"Generated task_id from track_id: {task_id}")
         
         # Check if we have a preview URL immediately (unlikely but possible)
         preview_url = data.get("previewUrl")
@@ -355,17 +391,25 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     version = data.get("version")
     beatoven_status = data.get("status")
     
-    return {
+    # Make sure we return all data, with meaningful values
+    result = {
         "preview_url": preview_url,
         "prompt_used": music_prompt or f"Default prompt for {genre}",
         "track_id": track_id,
-        "task_id": task_id,
+        "task_id": task_id,  # This should now be properly extracted or generated
         "status": "processing" if not preview_url or not preview_url.endswith('.mp3') else "completed",
-        "version": version,
-        "beatoven_status": beatoven_status,
+        "version": version or 1,  # Use default version 1 if not provided
+        "beatoven_status": beatoven_status or "composing",  # Default status
         "title": track_name,
         "lyrics": generate_lyrics_for_topic(topic, genre)
     }
+    
+    # Log the final result for debugging (excluding lyrics for brevity)
+    result_copy = result.copy()
+    result_copy["lyrics"] = result_copy["lyrics"][:50] + "..." if result_copy["lyrics"] else None
+    print("RETURNING RESPONSE:", json.dumps(result_copy, indent=2))
+    
+    return result
 
 
 def generate_lyrics_for_topic(topic: str, genre: str) -> str:
