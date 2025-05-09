@@ -1303,100 +1303,485 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
         # Create a catchy hook phrase
         hook_phrase = f"Learn it ({short_topic}), know it ({short_topic}), own it!"
         
-        # Format facts to try to create rhyming couplets while preserving information
-        return f"""
+        # Add variety with multiple possible hip hop lyric formats
+        hip_hop_styles = [
+            # Style 1: Classic verse-chorus structure
+            f"""
 Yo, listen up as I drop these facts about {topic} with precise attack
 Bringing knowledge to your mind, laying education on the track
 
 {facts[0]} - that's right, that's tight
-Now let me break down more wisdom that'll make your brain ignite
-
-{facts[1]} - check it, respect it
-These aren't just words but facts you need to get connected
-
-{facts[2]} - straight truth, no lies
-Build your understanding as these facts materialize
+{facts[1]} - mind blown, insight
+These facts about {topic} gonna make your brain ignite
 
 {hook_phrase}
 Keep the knowledge flowing, keep your wisdom growing
 
-{facts[3]} - learn it, earn it
-This information's gold, so make sure you don't burn it
+{facts[2]} - straight up, no doubt 
+{facts[3]} - what it's all about
+Understanding {topic} is the key to break out
 
-{facts[4]} - memorize, get wise
-These facts about {topic} will help you rise
-
-{facts[5]} - final drop, top notch
-Lock this knowledge down so your brain can watch
+{facts[4]} - learn quick, stay woke
+{facts[5]} - real facts, no joke
+Now your mind's expanded with the knowledge I've provoked
 
 {hook_phrase}
-Now you know {topic}, you're certified smart
-Education complete, you've mastered this art!
+Let these {topic} facts resonate through your soul
+Education complete - you've reached your goal!
+""",
+
+            # Style 2: Storytelling hip hop format
+            f"""
+Let me tell you a story about {topic}, listen up
+Knowledge droppin' like rain, time to fill your mental cup
+
+Chapter one of the story goes a little something like this:
+{facts[0]}
+That's fundamental knowledge you don't wanna miss
+
+Moving on to chapter two, things get deeper now:
+{facts[1]}
+{facts[2]}
+These are building blocks that make you say "wow"
+
+The plot thickens with these critical facts:
+{facts[3]}
+{facts[4]}
+Breaking down {topic} and that's straight facts
+
+The conclusion of our story brings it all full circle:
+{facts[5]}
+Now you've mastered {topic}, your knowledge universal
+""",
+
+            # Style 3: Question & answer format
+            f"""
+What do we know about {topic}? Let me break it down
+With knowledge so deep it could make you drown
+
+Question: What's the first thing to understand?
+Answer: {facts[0]}
+That's knowledge straight from the promised land
+
+Question: What else is critical to know?
+Answer: {facts[1]}
+That's how your understanding starts to grow
+
+Question: Why does this matter to me?
+Answer: {facts[2]}
+{facts[3]}
+Now you're starting to see
+
+Question: How do I put this all together?
+Answer: {facts[4]}
+{facts[5]}
+And that's how you become clever
+
+{hook_phrase}
+{topic} knowledge now flows through your veins
+Lyrical education expanding your brain!
+""",
+
+            # Style 4: Motivational hip hop
+            f"""
+Yeah... {short_topic} knowledge about to level up your mind
+Educational facts that'll help you shine
+
+Stay focused and listen to what I'm about to say
+{facts[0]}
+That's the foundation to light your way
+
+Keep building on that with critical knowledge:
+{facts[1]}
+{facts[2]}
+These facts about {topic} give you the edge
+
+Dig deeper now, this is where it gets real:
+{facts[3]}
+{facts[4]}
+That's the truth about {topic}, can you feel?
+
+One more level before you reach the top:
+{facts[5]}
+Now you've conquered {topic}, and you'll never stop!
+
+{hook_phrase} (x2)
+Knowledge is power and you've got it all!
 """
+        ]
+        
+        # Choose a random style based on the topic to ensure variety
+        import hashlib
+        # Use hash of topic to select style, ensuring same topic gets different styles on different runs
+        style_index = int(hashlib.md5(f"{topic}_{time.time()}".encode()).hexdigest(), 16) % len(hip_hop_styles)
+        
+        return hip_hop_styles[style_index]
     elif normalized_genre in ["country", "folk"]:
         # Create a melodic refrain based on topic
         refrain = f"Oh, the wisdom of {short_topic}, stays with you forever more"
         
-        return f"""
-Wandering down the path of learning 'bout {topic}...
+        # Multiple country song structures for variety
+        country_styles = [
+            # Style 1: Classic country ballad
+            f"""
+Wandering down the dusty road of {topic}
+Learning truths that make my spirit free
 
 {facts[0]}
+It's as clear as the morning sun
 {facts[1]}
-{facts[2]}
+That's how this story begun
 
 {refrain}
 
+{facts[2]}
+Just like mama always told me
 {facts[3]}
+That's the truth for all to see
+
 {facts[4]}
 {facts[5]}
 
-These truths about {topic} light up your mind
-Like stars in the sky guiding you home
+These truths about {topic} light up my mind
+Like stars in the sky guiding me home
+""",
+
+            # Style 2: Country storytelling
+            f"""
+Let me tell you a story 'bout {topic}
+Sit a spell and listen to what I've learned
+
+It all started long ago when I discovered
+{facts[0]}
+That changed everything I knew
+
+Then along came the realization
+{facts[1]}
+{facts[2]}
+And suddenly the world made sense
+
+{refrain}
+
+As time went by, the truth got clearer
+{facts[3]}
+{facts[4]}
+Like sunshine breaking through the clouds
+
+And now I understand completely
+{facts[5]}
+That's the lesson life has taught me well
+""",
+
+            # Style 3: Upbeat country
+            f"""
+Kick up your heels and learn about {topic}
+It's knowledge that'll make your spirit soar
+
+{facts[0]}
+Yeehaw, ain't that something?
+{facts[1]}
+That's the truth worth knowing
+
+Chorus:
+{refrain}
+Understanding grows like wildflowers in spring
+
+{facts[2]}
+Sweet as honey, clear as day
+{facts[3]}
+That's the country way
+
+{facts[4]}
+True as the North Star shining
+{facts[5]}
+Knowledge worth gold mining
+
+{refrain}
+Now you know {topic} through and through!
+""",
+
+            # Style 4: Country gospel style
+            f"""
+Oh the wisdom of {topic} is a blessing
+Let these truths bring light to your soul
+
+{facts[0]}
+Praise be for this knowledge
+{facts[1]}
+Amen to that truth
+
+{refrain}
+Let this learning be your guide
+
+{facts[2]}
+Solid as bedrock, pure as rain
+{facts[3]}
+Truth that will remain
+
+{facts[4]}
+Write it on your heart forever
+{facts[5]}
+Wisdom to treasure
+
+May these {topic} facts stay with you
+Like faithful friends, tried and true
 """
+        ]
+        
+        # Choose a random style based on the topic to ensure variety
+        import hashlib
+        # Use hash of topic to select style, ensuring same topic gets different styles on different runs
+        style_index = int(hashlib.md5(f"{topic}_{time.time()}".encode()).hexdigest(), 16) % len(country_styles)
+        
+        return country_styles[style_index]
     elif normalized_genre in ["rock", "heavy_metal", "punk", "grunge"]:
         # Create a powerful chant/anthem based on topic
         power_chant = f"{short_topic.upper()}! {short_topic.upper()}! KNOWLEDGE IS POWER!"
         
-        return f"""
+        # Multiple rock song structures for variety
+        rock_styles = [
+            # Style 1: Classic hard rock
+            f"""
 Are you ready to rock with the truth about {topic}?
+Crank up the volume, let the knowledge explode!
 
 {facts[0]}
+BLAST IT THROUGH YOUR MIND!
 {facts[1]}
-{facts[2]}
+FEEL THE POWER OF TRUTH!
 
 {power_chant}
 
+{facts[2]}
+HEAVY METAL KNOWLEDGE!
 {facts[3]}
+GUITAR SOLO OF WISDOM!
+
 {facts[4]}
 {facts[5]}
 
 These are the facts that you need to know
-About {topic} - let your wisdom grow!
+About {topic} - let your wisdom GROW!
+""",
+
+            # Style 2: Progressive rock style
+            f"""
+Embark on a journey through the realms of {topic}
+A mind-expanding odyssey of knowledge awaits...
+
+Movement I: Foundation
+{facts[0]}
+{facts[1]}
+The building blocks of understanding
+
+Interlude:
+{power_chant}
+
+Movement II: Expansion
+{facts[2]}
+{facts[3]}
+As your consciousness expands
+
+Movement III: Ascension
+{facts[4]}
+{facts[5]}
+
+The epic saga of {topic} is now complete
+Your enlightenment achieved through sonic wisdom
+""",
+
+            # Style 3: Punk rock rebellion
+            f"""
+HEY! HEY! LISTEN UP! THIS IS {topic.upper()}!
+NO MORE IGNORANCE! TIME FOR FACTS!
+
+1-2-3-4!
+
+{facts[0]}
+DON'T BELIEVE THE LIES!
+{facts[1]}
+QUESTION EVERYTHING!
+
+{power_chant}
+
+{facts[2]}
+WAKE UP AND LEARN!
+{facts[3]}
+KNOWLEDGE IS REBELLION!
+
+{facts[4]}
+STAND UP FOR TRUTH!
+{facts[5]}
+NEVER BACK DOWN!
+
+NOW YOU KNOW {topic.upper()}!
+INTELLECTUAL ANARCHY RULES!
+""",
+
+            # Style 4: Stadium rock anthem
+            f"""
+Raise your hands for the anthem of {topic}!
+Let your voice join the chorus of knowledge!
+
+Verse 1:
+{facts[0]}
+{facts[1]}
+Can you feel the truth coursing through your veins?
+
+Chorus:
+{power_chant}
+Everybody now!
+{power_chant}
+
+Verse 2:
+{facts[2]}
+{facts[3]}
+This is the power of learning!
+
+Bridge:
+{facts[4]}
+{facts[5]}
+
+Final Chorus:
+{power_chant}
+We will, we will, LEARN YOU!
 """
+        ]
+        
+        # Choose a random style based on the topic to ensure variety
+        import hashlib
+        # Use hash of topic to select style, ensuring same topic gets different styles on different runs
+        style_index = int(hashlib.md5(f"{topic}_{time.time()}".encode()).hexdigest(), 16) % len(rock_styles)
+        
+        return rock_styles[style_index]
     elif normalized_genre in ["electronic", "eletronic", "disco", "edm"]:
         # Create a repetitive, danceable hook
         beat_hook = f"Learn-learn-learn the {short_topic} (Woo!)"
         
-        return f"""
+        # Multiple electronic music styles for variety
+        electronic_styles = [
+            # Style 1: EDM/House
+            f"""
 Pulse with the rhythm of {topic} knowledge...
+Feel the bass drop of education!
 
+[Buildup]
 {facts[0]}
 {facts[1]}
+Feel it building...
+
+[DROP]
+{beat_hook} [x4]
+
+[Breakdown]
 {facts[2]}
-
-{beat_hook}
-
 {facts[3]}
+Let the knowledge flow!
+
+[Second Drop]
+{beat_hook} [x2]
 {facts[4]}
 {facts[5]}
 
+[Outro]
 Knowledge of {topic} flows through your mind
 Wisdom illuminating your thoughts - forever!
+""",
+
+            # Style 2: Ambient/Chill electronic
+            f"""
+Floating in a sea of {topic} knowledge...
+Let the waves of information wash over you...
+
+{facts[0]}
+(Ambient synth tones)
+{facts[1]}
+(Gentle pulsing beat)
+
+{beat_hook}
+Let it resonate...
+
+{facts[2]}
+(Ethereal pads)
+{facts[3]}
+(Rhythmic patterns)
+
+{facts[4]}
+(Swelling crescendo)
+{facts[5]}
+(Fading echoes)
+
+As the sound recedes, the knowledge remains
+{topic} understanding, eternally yours...
+""",
+
+            # Style 3: Techno/Industrial
+            f"""
+*SYSTEM INITIALIZING*
+Uploading {topic} data sequence...
+
+TRACK 01: PRIMARY FACTS
+{facts[0]}
+{facts[1]}
+*DATA TRANSFER AT 50%*
+
+{beat_hook}
+SYNCHRONIZING NEURAL PATTERNS
+
+TRACK 02: ADVANCED CONCEPTS
+{facts[2]}
+{facts[3]}
+*PROCESSING INFORMATION*
+
+FINAL DATA PACKAGE:
+{facts[4]}
+{facts[5]}
+
+*KNOWLEDGE TRANSFER COMPLETE*
+{topic.upper()} DATABASE SUCCESSFULLY INSTALLED
+""",
+
+            # Style 4: Future Bass/Trap
+            f"""
+Yo, this is that {topic} knowledge [airhorn sound]
+DJ Education on the decks! Let's go!
+
+*808 bass drops*
+{facts[0]}
+*Snare roll*
+{facts[1]}
+
+{beat_hook} (Distorted vocals)
+Skrrt skrrt - learn that {short_topic}!
+
+*Heavy trap beat*
+{facts[2]}
+*Bass wobble*
+{facts[3]}
+
+*Beat switch*
+{facts[4]}
+*Final drop*
+{facts[5]}
+
+And that's {topic} one-oh-one
+School is out - education just begun!
 """
+        ]
+        
+        # Choose a random style based on the topic to ensure variety
+        import hashlib
+        # Use hash of topic to select style, ensuring same topic gets different styles on different runs
+        style_index = int(hashlib.md5(f"{topic}_{time.time()}".encode()).hexdigest(), 16) % len(electronic_styles)
+        
+        return electronic_styles[style_index]
     else:
-        # General default format for any other genre
-        return f"""
+        # Multiple general styles for any other genre
+        general_styles = [
+            # Style 1: Poetic/Lyrical
+            f"""
 Journey with me through the world of {topic}...
+Where knowledge blooms like flowers in spring.
 
 {facts[0]}
 
@@ -1412,7 +1797,93 @@ Journey with me through the world of {topic}...
 
 With these truths about {topic} now clear in your mind,
 You'll understand the world in a whole new light.
+""",
+            
+            # Style 2: Theatrical/Musical
+            f"""
+ACT I: INTRODUCTION TO {topic.upper()}
+
+Our story begins with essential knowledge:
+{facts[0]}
+{facts[1]}
+
+ACT II: DEEPER UNDERSTANDING
+
+As our journey continues, we discover:
+{facts[2]}
+{facts[3]}
+
+ACT III: MASTERY AND WISDOM
+
+Finally, the full picture emerges:
+{facts[4]}
+{facts[5]}
+
+EPILOGUE:
+The curtain falls, but your knowledge of {topic} remains,
+A performance of learning that will never end.
+""",
+            
+            # Style 3: Educational Rhyme
+            f"""
+Listen closely as I rhyme about {topic} divine,
+Facts and knowledge that will surely shine.
+
+First, remember this important point:
+{facts[0]}
+And this one too, don't disappoint:
+{facts[1]}
+
+Next in line, these facts are true:
+{facts[2]}
+Here's another just for you:
+{facts[3]}
+
+As we finish this educational tune,
+These final facts will make you swoon:
+{facts[4]}
+{facts[5]}
+
+Now you've learned about {topic} with style and grace,
+Carry this knowledge to every place!
+""",
+            
+            # Style 4: Spoken Word/Slam Poetry
+            f"""
+{topic}.
+A word that contains worlds.
+Let me break it down for you...
+
+FACT:
+{facts[0]}
+
+REALITY:
+{facts[1]}
+
+TRUTH:
+{facts[2]}
+
+WISDOMS:
+{facts[3]}
+{facts[4]}
+
+REVELATION:
+{facts[5]}
+
+And so we stand, enlightened.
+Knowing {topic} in ways we never imagined.
+This is how we grow.
+This is how we learn.
+This is how we become more.
 """
+        ]
+        
+        # Choose a random style based on the topic to ensure variety
+        import hashlib
+        # Use hash of topic to select style, ensuring same topic gets different styles on different runs
+        style_index = int(hashlib.md5(f"{topic}_{time.time()}".encode()).hexdigest(), 16) % len(general_styles)
+        
+        return general_styles[style_index]
 
 def map_to_beatoven_genre(genre):
     """Maps our genre to Beatoven.ai supported genres"""
