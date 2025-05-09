@@ -2556,13 +2556,17 @@ async def get_track_status(track_id: str, test_mode: bool = False):
             track_url = track_data.get("composeResult", {}).get("url")
             print(f"Found track URL in composeResult: {track_url}")
 
-        # Use track_url if available, otherwise fall back to previewUrl
+        # ALWAYS use track_url if available, otherwise fall back to previewUrl
         final_url = track_url or preview_url
 
         # Log all URLs for debugging
         print(f"Track URL: {track_url}")
         print(f"Preview URL: {preview_url}")
         print(f"Using final URL: {final_url}")
+
+        # If we're using a fallback sample URL, log a warning
+        if final_url and "filesamples.com" in final_url:
+            print("⚠️ WARNING: Using fallback sample URL - should not happen in production!")
 
         return {
             "track_id": track_id,

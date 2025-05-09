@@ -148,7 +148,7 @@
               <button class="control-btn" @click="skipForward" aria-label="Next">
                 <img :src="icons.next" alt="Next" class="control-icon" />
               </button>
-              <button 
+              <button
                 class="control-btn"
                 :class="{ 'active': isLooping }"
                 @click="toggleLoop"
@@ -310,7 +310,9 @@ export default {
     this.checkApiHealth()
     // Check API health every 30 seconds
     setInterval(this.checkApiHealth, 30000)
+
   },
+
   methods: {
     selectGenre(genreId) {
       console.log(`Genre selected: ${genreId}`)
@@ -583,7 +585,16 @@ export default {
           // This is from the /api/music/generate endpoint format
           // IMPORTANT: Prioritize track_url over output_url
           console.log('Using track_url from response:', data.track_url);
+          console.log('Response output_url value:', data.output_url);
+
+          // Always prioritize track_url over output_url
           this.audioUrl = data.track_url || data.output_url || sampleAudioUrl
+
+          if (this.audioUrl === data.track_url) {
+            console.log('Using track_url for audio playback');
+          } else if (this.audioUrl === data.output_url) {
+            console.warn('Falling back to output_url - track_url was not available');
+          }
           this.songTitle = data.title || `Song about ${this.learningTopic}`
           this.lyrics = data.lyrics || 'Lyrics not available for this song.'
           // Find genre display name
@@ -599,8 +610,8 @@ export default {
           // Unknown format - log it and try to extract useful information
           console.warn('Unknown API response format:', data);
           
-          // Try to extract audio URL from any reasonable field
-          this.audioUrl = data.output_url || data.preview_url || data.track_url || 
+          // Try to extract audio URL from any reasonable field - prioritize track_url
+          this.audioUrl = data.track_url || data.output_url || data.preview_url ||
                          data.url || data.output || data.audio || sampleAudioUrl
           
           this.songTitle = data.title || data.name || `Song about ${this.learningTopic}`
@@ -763,7 +774,8 @@ export default {
       if (this.$refs.audioPlayer) {
         this.$refs.audioPlayer.loop = this.isLooping
       }
-    }
+    },
+
   }
 }
 </script>
@@ -1172,6 +1184,7 @@ body {
 .control-btn.active img {
   filter: invert(11%) sepia(79%) saturate(4223%) hue-rotate(334deg) brightness(93%) contrast(93%); /* Make icon ASU maroon */
 }
+
 
 /* Placeholder text styling */
 .placeholder-text {
