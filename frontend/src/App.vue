@@ -316,7 +316,10 @@ export default {
       // Use a small timeout to ensure UI updates
       setTimeout(() => {
         this.selectedGenre = genreId
+        // Log the genre details for debugging
+        const selectedGenreObj = this.genres.find(g => g.id === genreId)
         console.log(`Genre selection updated to: ${this.selectedGenre}`)
+        console.log('Selected genre object:', selectedGenreObj)
       }, 10)
     },
     
@@ -365,10 +368,14 @@ export default {
         alert('Please enter what you want to learn about!')
         return
       }
-      
+
       // Force refresh of the selected genre before generating
       console.log(`Using selected genre for generation: ${this.selectedGenre}`)
       const currentGenre = this.selectedGenre
+
+      // Debug genre selection
+      console.log('Debug - all genres:', this.genres)
+      console.log('Debug - selected genre object:', this.genres.find(g => g.id === this.selectedGenre))
       
       // Reset audio player and UI state for a fresh generation
       if (this.$refs.audioPlayer) {
