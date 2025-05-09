@@ -2,7 +2,31 @@
   <div>
     <header class="header">
       <div class="logo-container">
-        <img :src="asuLogoSrc" alt="ASU Logo" class="asu-logo" />
+        <!-- ASU Logo as inline SVG for reliable rendering on all platforms -->
+        <svg width="120" height="40" viewBox="0 0 720 240" class="asu-logo" xmlns="http://www.w3.org/2000/svg">
+          <g>
+            <path fill="#8C1D40" d="M219,32.3c-4.3,1.6-10.4,3.4-14.9,5.9c-0.5,0.3-1,0.8-1,1.3c0,0.6,0.4,1.3,1.4,2.4c1.8,2.7,5.4,6.5,5.4,6.5
+              s8.8-0.7,10.2-0.8c1.5-0.1,2.6-2.3,2.6-5.3C222.8,39,222,30.5,219,32.3z M143.7,93h-21.4l9.8-34.6L143.7,93z M369.1,39.1
+              c-1.4-1.4-9.8-1.4-12.2,0c-2.2,1.3-31.4,57.1-31.4,57.1h19.3l3.7-8.9h29.1l0.5,8.9h17.1C395.3,96.2,370.5,40.6,369.1,39.1z
+               M352.4,73.8l9.7-23.4l5.3,23.4H352.4z M498.3,39h-18.2v57.2h18.2V39z M217.4,39h-17.3l-33.4,57h19.7l5.9-11.3h33.2l1.1,11.3
+              h18.6L217.4,39z M197.3,71.4l12.2-24.1l6.3,24.1H197.3z M283.8,61.8c10-2.3,18.3-11.1,18.3-21.4c0-13.2-10.2-20.1-23.6-20.1
+              h-37.1v76h19.7V72.8h2.2l19.1,23.4h23.5L283.8,61.8z M265,57.1h-3.8V35.1h7.1c6.2,0,13-1.1,13,10.8C281.3,57.1,271.3,57.1,265,57.1
+              z M439.5,59.8c0-27.4-39.2-19.3-39.2-32.5c0-4.2,4.8-5.5,8.8-5.5c5.5,0,27.6,5.5,27.6,5.5V11.9c0,0-15.3-4.5-30.2-4.5
+              c-15.1,0-28.3,9.7-28.3,25.3c0,28.3,38.4,18.3,38.4,32.3c0,6.3-7.6,8.1-14.9,8.1c-10.5,0-29.8-8.7-29.8-8.7v15.9
+              c0,0,15.6,6.9,33.7,6.9C425.6,87.2,439.5,74.1,439.5,59.8z M469.8,39H445V31h34.8V15.8h-54.1v80.4h55.8V80.6h-36.5v-26h24.8
+              V39z M581.4,15.8h-19.7v80.4h19.7V15.8z M639.1,75.8c-17.3,0-17.3-39.7,0-39.7C656.3,36.1,657.2,75.8,639.1,75.8z M639.1,19.6
+              c-31.3,0-41.8,26.5-41.8,36.2c0,9.7,10.6,36.2,41.8,36.2c31.1,0,41.8-26.5,41.8-36.2C680.9,46.1,670.2,19.6,639.1,19.6z
+               M713.9,61.2h9.8c3.5,0,9.2,2.3,9.2,9.2c0,7.4-3.7,9.9-10.4,9.9h-8.6V61.2z M713.9,35.1h8c6.1,0,8.1,2.7,8.1,8
+              c0,5.5-2.9,7.4-8.9,7.4h-7.3V35.1z M694.2,15.8v80.4h32.1c11.9,0,27.8-7.6,27.8-25.7c0-7.9-4.7-14.5-12.1-17.4
+              c4.7-3.4,7.7-7.6,7.7-16.4c0-14.3-10.8-20.9-26.2-20.9H694.2z M519.4,15.8v80.4h56.7V80.6h-37V15.8H519.4z M112.9,54.6
+              c0,9.7-2.1,13.9-5.5,18.4c-3.5,4.6-8.3,6.9-13.9,6.9c-5.7,0-10.4-2.4-13.7-6.8c-3.4-4.4-5.5-8.5-5.5-18.5V15.8H55.4v42.5
+              c0,15.5,5.4,25,16.1,30.1c6.9,3.3,14.6,4.9,22.1,4.9c7.4,0,15.2-1.8,21.9-4.9c10.7-5.1,16.1-14.6,16.1-30.1V15.8h-18.7V54.6z
+               M37.7,51.3c-8.9-2.9-17.1-5.9-17.1-12.4c0-7.7,9.5-7.6,14-7.6c8.1,0,18.6,2.4,26.3,7.1V20.2c-8.1-4.7-17.6-7-27-7
+              C26.6,13.2,0,18.6,0,39.6c0,22.5,23.7,28.9,34.4,32.1c11.1,3.3,19.8,5.7,19.8,13c0,10.8-13.8,9.2-20,9.2
+              c-9.1,0-22.2-5.1-30.1-10.2v19.7c9.9,5.6,20.4,8.9,31.4,8.9c18.7,0,39.6-9.8,39.6-28.8C75.1,63.8,56.1,57.6,37.7,51.3z">
+            </path>
+          </g>
+        </svg>
         <h1 class="site-title">Study Music</h1>
       </div>
       <button class="login-button">Login / Sign up</button>
@@ -205,7 +229,6 @@
 import FileUpload from './components/FileUpload.vue'
 import config from './config'
 import albumArtImage from './assets/album-art.svg'
-import asuLogo from './assets/logos/asu-logo.png'
 
 // Import player control icons
 import shuffleIcon from './assets/icons/shuffle.svg'
@@ -243,7 +266,6 @@ export default {
       currentAudioTime: 0, // in seconds
       isLooping: false,
       albumArt: albumArtImage,
-      importedAsuLogo: asuLogo, // Keep reference to imported logo
       // Player control icons
       icons: {
         shuffle: shuffleIcon,
@@ -301,20 +323,7 @@ export default {
       return (this.currentAudioTime / this.audioDuration) * 100;
     },
     
-    asuLogoSrc() {
-      // For production (deployed on Render), use a direct URL to a public ASU logo
-      // For local development, use the imported asset
-      const isProduction = window.location.hostname.includes('render.com') || 
-                         window.location.hostname.includes('onrender.com');
-      
-      if (isProduction) {
-        // Use a direct URL to ASU's logo that's publicly accessible
-        return 'https://www.asu.edu/sites/default/files/arizona-state-university-logo.png';
-      } else {
-        // For local development, use the imported asset
-        return asuLogo;
-      }
-    }
+    // We're now using inline SVG for the logo, so this property is no longer needed
   },
   mounted() {
     console.log('API URL:', this.apiUrl)
