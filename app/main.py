@@ -1299,21 +1299,35 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
         # Create a catchy hook phrase
         hook_phrase = f"Learn it ({short_topic}), know it ({short_topic}), own it!"
         
+        # Format facts to try to create rhyming couplets while preserving information
         return f"""
-Yeah... listen up about {topic}!
+Yo, listen up as I drop these facts about {topic} with precise attack
+Bringing knowledge to your mind, laying education on the track
 
-{facts[0]}
-{facts[1]}
-{facts[2]}
+{facts[0]} - that's right, that's tight
+Now let me break down more wisdom that'll make your brain ignite
+
+{facts[1]} - check it, respect it
+These aren't just words but facts you need to get connected
+
+{facts[2]} - straight truth, no lies
+Build your understanding as these facts materialize
 
 {hook_phrase}
+Keep the knowledge flowing, keep your wisdom growing
 
-{facts[3]}
-{facts[4]}
-{facts[5]}
+{facts[3]} - learn it, earn it
+This information's gold, so make sure you don't burn it
+
+{facts[4]} - memorize, get wise
+These facts about {topic} will help you rise
+
+{facts[5]} - final drop, top notch
+Lock this knowledge down so your brain can watch
 
 {hook_phrase}
-Master {topic} now - knowledge is power!
+Now you know {topic}, you're certified smart
+Education complete, you've mastered this art!
 """
     elif normalized_genre in ["country", "folk"]:
         # Create a melodic refrain based on topic
