@@ -502,64 +502,466 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
 
 
 def generate_lyrics_for_topic(topic: str, genre: str) -> str:
-    """Generate lyrics for a given topic and genre.
+    """Generate educational lyrics for a given topic and genre.
     
     In a real implementation, this would call an LLM like OpenAI's o4-mini.
-    For now, we'll return a simple template.
+    For now, we provide topic-specific educational lyrics.
     """
-    if genre.lower() == "hip_hop":
+    # Extract core concept without extra words like "the", "and", etc.
+    core_topic = topic.lower().replace("the ", "").replace("about ", "").strip()
+    
+    # Map of educational facts for common educational topics
+    educational_facts = {
+        # Biology
+        "photosynthesis": [
+            "Plants capture sunlight with chlorophyll",
+            "Carbon dioxide + water = glucose and oxygen",
+            "Light reactions occur in thylakoid membranes",
+            "Calvin cycle fixes carbon into sugar",
+            "Chloroplasts are the powerhouses of plant cells",
+            "Plants feed the entire food chain with glucose"
+        ],
+        "mitosis": [
+            "Prophase condenses the chromosomes",
+            "Metaphase aligns them at cell's equator",
+            "Anaphase pulls chromatids to opposite poles",
+            "Telophase forms nuclear membranes",
+            "Cytokinesis divides the cytoplasm",
+            "Checkpoint proteins regulate the cycle"
+        ],
+        "cell": [
+            "Nucleus holds genetic information",
+            "Mitochondria produce energy through ATP",
+            "Ribosomes synthesize proteins",
+            "Endoplasmic reticulum transports materials",
+            "Lysosomes contain digestive enzymes",
+            "Membrane controls what enters and exits"
+        ],
+        "evolution": [
+            "Natural selection favors adaptive traits",
+            "Genetic variation comes from mutation",
+            "Species adapt to environmental pressures",
+            "Common ancestors explain shared traits",
+            "Fossil record shows change over time",
+            "DNA evidence confirms evolutionary relationships"
+        ],
+        "dna": [
+            "DNA forms a double helix structure",
+            "Nucleotides are adenine, thymine, guanine, and cytosine",
+            "Base pairs connect with hydrogen bonds",
+            "Genes are sections that code for proteins",
+            "Replication creates identical DNA copies",
+            "Mutations can change genetic information"
+        ],
+        "digestive system": [
+            "Mouth begins digestion with enzymes in saliva",
+            "Stomach uses acid to break down proteins",
+            "Small intestine absorbs most nutrients",
+            "Liver produces bile to emulsify fats",
+            "Pancreas releases enzymes for digestion",
+            "Large intestine absorbs water and forms waste"
+        ],
+        "immune system": [
+            "White blood cells defend against pathogens",
+            "Antibodies tag specific invaders for destruction",
+            "Vaccines train immunity with weakened pathogens",
+            "Inflammation increases blood flow to injured areas",
+            "Memory cells remember past infections",
+            "Immune responses can be innate or adaptive"
+        ],
+        
+        # History
+        "revolution": [
+            "French Revolution overthrew monarchy in 1789",
+            "American Revolution won independence in 1776",
+            "Industrial Revolution mechanized production",
+            "Scientific Revolution changed how we view nature",
+            "Digital Revolution transformed information",
+            "Revolutions often begin with social inequality"
+        ],
+        "civil rights": [
+            "Movement fought against racial segregation",
+            "Martin Luther King Jr. advocated nonviolent resistance",
+            "Brown v. Board ended school segregation",
+            "Civil Rights Act of 1964 prohibited discrimination",
+            "Voting Rights Act protected ballot access",
+            "Rosa Parks sparked the Montgomery Bus Boycott"
+        ],
+        "world war ii": [
+            "Conflict ran from 1939 to 1945",
+            "Axis Powers fought Allied Powers globally",
+            "Holocaust killed six million Jewish people",
+            "D-Day invasion turned tide in Europe",
+            "Atomic bombs ended Pacific Theater",
+            "United Nations formed after the war"
+        ],
+        "ancient egypt": [
+            "Civilization flourished along the Nile",
+            "Pyramids were tombs for pharaohs",
+            "Hieroglyphics served as writing system",
+            "Mummification preserved bodies for afterlife",
+            "Pharaohs ruled as god-kings over society",
+            "Rosetta Stone unlocked Egyptian language"
+        ],
+        "civil war": [
+            "American conflict lasted from 1861 to 1865",
+            "Slavery was a central cause of division",
+            "Abraham Lincoln issued the Emancipation Proclamation",
+            "Union victory preserved the United States",
+            "Reconstruction era followed with significant changes",
+            "Over 600,000 soldiers died in the conflict"
+        ],
+        
+        # Physics
+        "gravity": [
+            "Newton's law states mass attracts mass",
+            "Einstein explained it as curved spacetime",
+            "Gravity's strength decreases with distance squared",
+            "It's the weakest of the four fundamental forces",
+            "Black holes have extreme gravitational fields",
+            "Gravity determines planetary orbits"
+        ],
+        "electricity": [
+            "Electrons flow creates current",
+            "Voltage measures potential difference",
+            "Resistance limits electron movement",
+            "Conductors allow electricity to flow",
+            "Insulators block electrical current",
+            "Circuits require complete paths"
+        ],
+        "quantum mechanics": [
+            "Particles can behave like waves",
+            "Heisenberg's uncertainty principle limits precision",
+            "Quantum entanglement connects particles instantly",
+            "Schrödinger's equation describes wave functions",
+            "Quantum states exist in superposition",
+            "Measurement collapses quantum possibilities"
+        ],
+        "relativity": [
+            "Time dilates at high speeds",
+            "Energy and mass are equivalent (E=mc²)",
+            "Space and time form one continuum",
+            "Nothing can travel faster than light",
+            "Gravity curves spacetime fabric",
+            "GPS satellites need relativistic corrections"
+        ],
+        "magnetism": [
+            "Magnetic fields flow from north to south poles",
+            "Moving electric charges create magnetic fields",
+            "Earth has a magnetic field from its core",
+            "Like poles repel, opposite poles attract",
+            "Electromagnetism powers motors and generators",
+            "Magnetic domains align in ferromagnetic materials"
+        ],
+        
+        # Chemistry
+        "atom": [
+            "Protons have positive charge",
+            "Neutrons have neutral charge",
+            "Electrons orbit with negative charge",
+            "Elements differ by proton number",
+            "Isotopes have different neutron counts",
+            "Valence electrons form chemical bonds"
+        ],
+        "chemical bonds": [
+            "Ionic bonds transfer electrons between atoms",
+            "Covalent bonds share electron pairs",
+            "Hydrogen bonds form between polar molecules",
+            "Metallic bonds create electron seas",
+            "Bond energy measures bond strength",
+            "Electronegativity differences determine bond type"
+        ],
+        "periodic table": [
+            "Elements organize by increasing atomic number",
+            "Columns (groups) share similar properties",
+            "Rows (periods) have same electron shells",
+            "Metals dominate the left side",
+            "Noble gases have full electron shells",
+            "Dmitri Mendeleev created the first version"
+        ],
+        "acids and bases": [
+            "Acids donate hydrogen ions (H+)",
+            "Bases accept hydrogen ions",
+            "pH scale measures acidity from 0-14",
+            "Neutral solutions have pH of 7",
+            "Buffers resist pH changes",
+            "Titration determines acid/base concentration"
+        ],
+        
+        # Earth Science
+        "water cycle": [
+            "Evaporation turns liquid to vapor",
+            "Condensation forms clouds from vapor",
+            "Precipitation returns water to Earth",
+            "Infiltration soaks water into soil",
+            "Transpiration releases water from plants",
+            "Runoff carries water to lakes and oceans"
+        ],
+        "climate change": [
+            "Greenhouse gases trap heat in atmosphere",
+            "Carbon dioxide levels are increasing rapidly",
+            "Global temperatures have risen by 1°C since 1880",
+            "Sea levels rise from melting ice and thermal expansion",
+            "Extreme weather events become more frequent",
+            "International agreements aim to limit warming"
+        ],
+        "plate tectonics": [
+            "Earth's crust is divided into moving plates",
+            "Plate boundaries create mountains and trenches",
+            "Earthquakes occur when plates suddenly shift",
+            "Volcanoes form at subduction zones",
+            "Continental drift reshapes landmasses over time",
+            "The mantle's convection currents drive plate movement"
+        ],
+        "weather": [
+            "Air pressure differences cause wind",
+            "Warm fronts bring steady precipitation",
+            "Cold fronts create short, intense storms",
+            "High pressure systems bring clear skies",
+            "Hurricanes form over warm ocean waters",
+            "Jet streams influence weather patterns"
+        ],
+        
+        # Astronomy
+        "solar system": [
+            "Eight planets orbit our Sun",
+            "Asteroid belt lies between Mars and Jupiter",
+            "Gas giants have rings and many moons",
+            "Comets have highly elliptical orbits",
+            "Terrestrial planets have solid surfaces",
+            "Kuiper Belt contains dwarf planets like Pluto"
+        ],
+        "black holes": [
+            "Event horizon marks point of no return",
+            "Singularity contains infinite density",
+            "Hawking radiation causes black holes to evaporate",
+            "Supermassive black holes exist in galaxy centers",
+            "Time slows near strong gravitational fields",
+            "Black holes form from collapsed massive stars"
+        ],
+        "stars": [
+            "Nuclear fusion powers stellar cores",
+            "Stellar life cycle depends on initial mass",
+            "Red giants are late-stage expanded stars",
+            "Supernovas explode at some stars' deaths",
+            "Elements heavier than iron form in supernovas",
+            "Main sequence is stars' stable hydrogen-burning phase"
+        ],
+        
+        # Mathematics
+        "algebra": [
+            "Variables represent unknown values",
+            "Equations express relationships between numbers",
+            "Like terms can be combined by addition",
+            "Distributive property applies to factoring",
+            "Quadratic equations have two solutions",
+            "Functions map inputs to unique outputs"
+        ],
+        "calculus": [
+            "Derivatives measure rates of change",
+            "Integrals find areas under curves",
+            "Limits describe behaviors as values approach points",
+            "Fundamental theorem connects integration and differentiation",
+            "Newton and Leibniz developed calculus independently",
+            "Taylor series approximates functions with polynomials"
+        ],
+        "geometry": [
+            "Parallel lines never intersect",
+            "Similar triangles maintain proportional sides",
+            "Pythagorean theorem relates right triangle sides",
+            "Pi represents circle circumference/diameter ratio",
+            "Regular polygons have equal sides and angles",
+            "Congruent shapes have identical size and shape"
+        ],
+        "statistics": [
+            "Mean represents the average value",
+            "Median shows the middle value when ordered",
+            "Standard deviation measures data spread",
+            "Normal distribution creates bell curve",
+            "Correlation doesn't imply causation",
+            "P-value indicates result significance"
+        ],
+        
+        # Government/Civics
+        "democracy": [
+            "Citizens vote to elect representatives",
+            "Separation of powers prevents tyranny",
+            "Ancient Athens pioneered direct democracy",
+            "Constitutions protect individual rights",
+            "Free press ensures informed citizens",
+            "Civil liberties give freedom of expression"
+        ],
+        "constitution": [
+            "Establishes three branches of government",
+            "First ten amendments form the Bill of Rights",
+            "Article I grants powers to Congress",
+            "Article II defines presidential authority",
+            "Article III establishes judiciary system",
+            "Amendment process allows for changes"
+        ],
+        "branches of government": [
+            "Legislative branch makes laws through Congress",
+            "Executive branch enforces laws through President",
+            "Judicial branch interprets laws through courts",
+            "Checks and balances prevent power concentration",
+            "Senate and House compose the Congress",
+            "Supreme Court can declare laws unconstitutional"
+        ],
+        
+        # Computer Science
+        "programming": [
+            "Variables store data for later use",
+            "Loops repeat instructions efficiently",
+            "Conditionals control program flow with decisions",
+            "Functions organize reusable code blocks",
+            "Debugging finds and fixes software errors",
+            "Algorithms are step-by-step solution processes"
+        ],
+        "internet": [
+            "TCP/IP protocols govern data transmission",
+            "Packets break data into transferable chunks",
+            "Routers direct traffic between networks",
+            "DNS translates domain names to IP addresses",
+            "HTTP enables web page transfer",
+            "Encryption secures sensitive information"
+        ],
+        "artificial intelligence": [
+            "Machine learning trains computers with data",
+            "Neural networks mimic brain structure",
+            "Natural language processing understands human text",
+            "Computer vision interprets visual information",
+            "Deep learning uses multiple neural network layers",
+            "AI ethics considers responsibility and bias"
+        ]
+    }
+    
+    # Look for topic matches or partial matches
+    facts = []
+    best_match = None
+    best_match_score = 0
+    
+    # Clean up the topic for better matching
+    search_terms = core_topic.lower().replace(",", " ").replace(".", " ").split()
+    
+    # Try to find the best match among our educational topics
+    for key in educational_facts:
+        # Direct match is best
+        if key == core_topic:
+            facts = educational_facts[key]
+            print(f"Found exact match for topic: {key}")
+            break
+            
+        # Check for containment matches (either direction)
+        elif key in core_topic or core_topic in key:
+            facts = educational_facts[key]
+            print(f"Found containment match for topic: {key}")
+            break
+            
+        # Otherwise, score each potential match
+        else:
+            key_terms = key.lower().split()
+            match_score = 0
+            
+            # Count how many search terms appear in this key
+            for term in search_terms:
+                if term in key_terms or any(term in kt for kt in key_terms):
+                    match_score += 1
+                # Extra points for terms that are significant parts of topics
+                if len(term) > 3 and any(term in kt for kt in key_terms):
+                    match_score += 1
+            
+            # If this is a better match than previous best, store it
+            if match_score > best_match_score:
+                best_match_score = match_score
+                best_match = key
+    
+    # If we didn't find a direct or containment match, but did find a term match
+    if not facts and best_match_score > 0:
+        facts = educational_facts[best_match]
+        print(f"Found term match for topic: {best_match} (score: {best_match_score})")
+    
+    # If no matching topic found, use generic educational template
+    if not facts:
+        facts = [
+            f"{topic} is an important concept to study",
+            f"Understanding {topic} helps explain our world",
+            f"Scientists research {topic} to expand knowledge",
+            f"{topic} connects to many other subjects",
+            f"Learning about {topic} enhances critical thinking",
+            f"The principles of {topic} apply to daily life"
+        ]
+    
+    # Generate genre-specific lyrics with educational facts
+    if genre.lower() in ["hip_hop", "hip-hop", "rap"]:
         return f"""
 [Verse 1]
-Listen up, let me tell you 'bout {topic}
-Knowledge flowing, can't nobody stop it
-Breaking it down so your mind can process
-Learning new things, that's how we progress
+Listen up, class in session about {topic}
+Time to break it down with facts that are impressive
+{facts[0]}
+{facts[1]}
+That's just the beginning of what you're learning today
+Knowledge is power, so let me light the way
 
 [Chorus]
-{topic.capitalize()}, yeah, that's what we're learning today
-{topic.capitalize()}, understand it in a whole new way
-{topic.capitalize()}, knowledge is the power we seek
-{topic.capitalize()}, now you're at the learning peak
+{topic.capitalize()} knowledge, expanding your mind
+{facts[2]}
+{topic.capitalize()} wisdom, it's your time to shine
+{facts[3]}
 
 [Verse 2]
-Don't just memorize, make sure you understand
-This knowledge right here will help you expand
-Your mind, your world, how you comprehend
-With {topic} skills, there's no limit to where you can ascend
+Back to the lesson, there's more you should know
+{facts[4]}
+{facts[5]}
+Now you've got the facts to help your knowledge grow
+Remember these points when it's time for the test
+Your education journey is no time to rest
 """
-    elif genre.lower() == "country":
+    elif genre.lower() in ["country", "folk"]:
         return f"""
 [Verse 1]
-Sitting here thinking 'bout {topic}
-Like a sunrise over fields of grain
-The lessons learned are never forgotten
-Knowledge like rain after a summer drought
+Sitting here learning 'bout {topic}
+Like reading chapters of nature's own book
+{facts[0]}
+{facts[1]}
+These lessons will stay with you along life's road
+Knowledge planted like seeds that have been sowed
 
 [Chorus]
 Oh, {topic}
-Teaching us about this world we're in
+{facts[2]}
 Oh, {topic}
-Where learning and living begin
+{facts[3]}
 
 [Verse 2]
-Take my hand, let's walk this road together
-Understanding grows like wildflowers in spring
-The wisdom of {topic} lasts forever
-These are the lessons worth remembering
+The journey of learning continues on
+{facts[4]}
+{facts[5]}
+The wisdom you've gained will carry on
+When you understand, the picture gets clear
+The knowledge of {topic} brings the answers near
 """
     else:
         return f"""
-[Verse]
-Let me tell you about {topic}
-A fascinating subject to explore
-The more you learn, the more you grow
-Understanding what it's all for
+[Verse 1]
+Today we're exploring {topic}
+Essential concepts you need to know
+{facts[0]}
+{facts[1]}
+{facts[2]}
+Building blocks of knowledge help us grow
 
 [Chorus]
 {topic.capitalize()}, {topic.capitalize()}
-Knowledge to help you on your way
+{facts[3]}
 {topic.capitalize()}, {topic.capitalize()}
-Learning something new today
+{facts[4]}
+
+[Verse 2]
+Let's continue learning about {topic}
+Diving deeper into what makes it work
+{facts[5]}
+Understanding brings clarity and light
+The knowledge you gain will serve you right
 """
 
 def map_to_beatoven_genre(genre):
