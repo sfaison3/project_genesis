@@ -835,7 +835,7 @@ body {
 .hero-section {
   text-align: center;
   padding: 6rem 1rem;
-  background-image: url('https://github.com/sfaison3/project_genesis/blob/main/frontend/public/images/study_songz_image.png');
+  background-image: url('https://raw.githubusercontent.com/sfaison3/project_genesis/refs/heads/main/frontend/public/images/study_songz_image.png?token=GHSAT0AAAAAADDQD6FL4PPP6DBVA7GUOEFO2A6AWYA');
   background-size: cover;
   background-position: center;
   color: white;
