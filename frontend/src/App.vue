@@ -230,6 +230,7 @@ export default {
       isLoading: false,
       showMoreGenres: false,
       lyricsExpanded: false,
+      usingGenericEndpoint: false, // Track which endpoint we're using
       // Song/music data
       songTitle: 'Song Title',
       songDescription: 'The why, and how this will benefit you',
@@ -362,16 +363,46 @@ export default {
         if (!endpoint.endsWith('/')) {
           endpoint += '/'
         }
-        endpoint += 'music/generate'
+        
+        // Check if we're using localhost and modify endpoint accordingly
+        const isLocalDevelopment = window.location.hostname === 'localhost' || 
+                                  window.location.hostname === '127.0.0.1';
+                                  
+        // Use the generic endpoint for local development as a fallback
+        if (isLocalDevelopment) {
+          console.log('Local development detected, using generic endpoint');
+          endpoint += 'generate'; // Use the generic endpoint that works
+          
+          // When using the generic endpoint, we need to adjust our request
+          this.usingGenericEndpoint = true;
+        } else {
+          // In production, use the specific music endpoint
+          endpoint += 'music/generate';
+          this.usingGenericEndpoint = false;
+        }
         
         console.log('Making request to:', endpoint)
         
-        // Standard JSON request
-        const requestBody = {
-          topic: this.learningTopic,
-          genre: this.selectedGenre,
-          duration: 60,
-          test_mode: true // Use test mode to ensure we get a response
+        // Standard JSON request - format depends on which endpoint we're using
+        let requestBody;
+        
+        if (this.usingGenericEndpoint) {
+          // For the generic /api/generate endpoint
+          requestBody = {
+            input: this.learningTopic,
+            model: "beatoven",
+            genre: this.selectedGenre,
+            duration: 60,
+            learning_topic: this.learningTopic
+          };
+        } else {
+          // For the specific /api/music/generate endpoint
+          requestBody = {
+            topic: this.learningTopic,
+            genre: this.selectedGenre,
+            duration: 60,
+            test_mode: true // Use test mode to ensure we get a response
+          };
         }
         
         if (this.uploadedFile) {
