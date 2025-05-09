@@ -29,9 +29,36 @@ app.add_middleware(
 
 # Mount static files directory for testing
 import os
+
+# Setup static directories
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Create images directory for static images
+images_dir = os.path.join(os.path.dirname(__file__), "static", "images")
+os.makedirs(images_dir, exist_ok=True)
+app.mount("/images", StaticFiles(directory=images_dir), name="images")
+
+# Copy ASU logo to images directory if it doesn't exist
+try:
+    asu_logo_dest = os.path.join(images_dir, "asu-logo.png")
+    if not os.path.exists(asu_logo_dest):
+        # Try to find the logo in various locations
+        possible_sources = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "public", "images", "asu-logo.png"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "src", "assets", "logos", "asu-logo.png"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist", "images", "asu-logo.png"),
+        ]
+
+        for source in possible_sources:
+            if os.path.exists(source):
+                import shutil
+                shutil.copy(source, asu_logo_dest)
+                print(f"Copied ASU logo from {source} to {asu_logo_dest}")
+                break
+except Exception as e:
+    print(f"Error copying ASU logo: {e}")
 
 # Serve test page
 @app.get("/test", include_in_schema=False)
