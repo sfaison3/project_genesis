@@ -19,7 +19,10 @@ load_dotenv()
 app = FastAPI(title="Genesis Music Learning API", description="Generate custom songs to enhance learning")
 
 # Mount static files directory for testing
-app.mount("/static", StaticFiles(directory="static"), name="static")
+import os
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Serve test page
 @app.get("/test", include_in_schema=False)
@@ -685,20 +688,9 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
     # Extract core concept without extra words like "the", "and", etc.
     core_topic = topic.lower().replace("the ", "").replace("about ", "").strip()
     
-    # First, try to get facts from Wikipedia
-    wiki_facts = extract_facts_from_wikipedia(topic)
-    
-    # If we got facts from Wikipedia, use those
-    facts = []
-    if wiki_facts:
-        facts = wiki_facts
-        print(f"Using {len(facts)} Wikipedia facts for lyrics")
-    else:
-        print("No Wikipedia facts found, using domain-specific templates")
-        
-        # If Wikipedia search failed, fall back to our domain-specific templates
-        # Map of educational facts for common educational topics
-        educational_facts = {
+    # Define educational_facts dictionary first to avoid reference before assignment
+    # This is crucial as we need it before trying to search Wikipedia or check topic keywords
+    educational_facts = {
         # Biology
         "photosynthesis": [
             "Plants capture sunlight with chlorophyll",
@@ -1028,22 +1020,9 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
     # First, check if we have predefined facts for this exact topic (for common educational topics)
     facts = None
     
-    # Clean up the topic for better matching
-    search_terms = core_topic.lower().replace(",", " ").replace(".", " ").split()
+    # This code was moved up to ensure facts variable is assigned before Wikipedia API call
     
-    # Try to find a direct match in our educational facts
-    if core_topic in educational_facts:
-        facts = educational_facts[core_topic]
-        print(f"Found exact match for common educational topic: {core_topic}")
-    # Check for simple containment
-    else:
-        for key in educational_facts:
-            if key in core_topic or core_topic in key:
-                facts = educational_facts[key]
-                print(f"Found related educational topic: {key}")
-                break
-    
-    # If we don't have predefined facts, generate topic-specific facts dynamically
+    # If we don't have either Wikipedia facts or predefined facts, generate topic-specific facts dynamically
     if not facts:
         print(f"Creating custom facts for user-requested topic: {topic}")
         
@@ -1211,6 +1190,32 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
                 f"{topic} promotes health benefits and physical development",
                 f"Mental focus and psychology play important roles in {topic}"
             ]
+            
+    # Important: Make sure facts variable is defined early to avoid reference before assignment errors
+    facts = None
+    
+    # Clean up the topic for better matching
+    search_terms = core_topic.lower().replace(",", " ").replace(".", " ").split()
+    
+    # First, check if we have predefined facts for this exact topic (for common educational topics)
+    if core_topic in educational_facts:
+        facts = educational_facts[core_topic]
+        print(f"Found exact match for common educational topic: {core_topic}")
+    # Check for simple containment
+    else:
+        for key in educational_facts:
+            if key in core_topic or core_topic in key:
+                facts = educational_facts[key]
+                print(f"Found related educational topic: {key}")
+                break
+    
+    # Now try to get facts from Wikipedia - this should override the domain-specific facts if successful
+    wiki_facts = extract_facts_from_wikipedia(topic)
+    
+    # If we got facts from Wikipedia, use those instead of domain-specific templates
+    if wiki_facts:
+        facts = wiki_facts
+        print(f"Using {len(facts)} Wikipedia facts for lyrics")
             
     # For template-based facts (not Wikipedia), ensure topic name is embedded
     # For Wikipedia facts, this is not needed as they are already about the topic
