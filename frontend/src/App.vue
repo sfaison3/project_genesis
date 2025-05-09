@@ -200,7 +200,7 @@
       </div>
     </main>
     <footer class="app-footer">
-      <img src="https://github.com/sfaison3/project_genesis/blob/main/frontend/public/images/app_footer.png" alt="App Footer" class="footer-image" />
+      <img src="https://raw.githubusercontent.com/sfaison3/project_genesis/refs/heads/main/frontend/public/images/app_footer.png?token=GHSAT0AAAAAADDQD6FLXZI33DYKI7HHR5M62A6AVRA" alt="App Footer" class="footer-image" />
     </footer>
   </div>
 </template>
