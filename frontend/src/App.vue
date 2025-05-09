@@ -2,8 +2,8 @@
   <div>
     <header class="header">
       <div class="logo-container">
-        <!-- Use the ASU logo image from the public directory -->
-        <img src="/images/asu-logo.png" alt="ASU Logo" class="asu-logo" />
+        <!-- Use the ASU logo from imported assets -->
+        <img :src="asuLogo" alt="ASU Logo" class="asu-logo" />
         <h1 class="site-title">Study Music</h1>
       </div>
       <button class="login-button">Login / Sign up</button>
@@ -206,6 +206,7 @@
 import FileUpload from './components/FileUpload.vue'
 import config from './config'
 import albumArtImage from './assets/album-art.svg'
+import asuLogoImage from './assets/logos/asu-logo.png'
 
 // Import player control icons
 import shuffleIcon from './assets/icons/shuffle.svg'
@@ -254,6 +255,8 @@ export default {
         expand: expandIcon,
         collapse: collapseIcon
       },
+      // ASU logo image
+      asuLogo: asuLogoImage,
       // Available genres - using underscore format to match Beatoven.ai API
       genres: [
         { id: 'country', name: 'Country' },
