@@ -10,6 +10,7 @@ import requests
 import random
 import time
 import json
+import re
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -522,17 +523,182 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     return result
 
 
+def search_wikipedia(topic: str, max_sentences=10):
+    """
+    Search Wikipedia for information about a topic and extract key facts.
+    
+    Args:
+        topic: The topic to search for
+        max_sentences: Maximum number of sentences to return
+        
+    Returns:
+        A list of sentences from the Wikipedia summary
+    """
+    print(f"Searching Wikipedia for: '{topic}'")
+    
+    # Clean up the topic for better searching
+    search_query = topic.strip()
+    
+    try:
+        # First make a search request to find the most relevant article
+        search_url = "https://en.wikipedia.org/w/api.php"
+        search_params = {
+            "action": "query",
+            "list": "search",
+            "srsearch": search_query,
+            "format": "json",
+            "utf8": 1,
+            "srlimit": 1  # Just get the top result
+        }
+        
+        # Print the full request URL for debugging
+        print(f"Wikipedia search URL: {search_url}?{'&'.join([f'{k}={v}' for k, v in search_params.items()])}")
+        
+        search_response = requests.get(search_url, params=search_params, timeout=10)
+        search_data = search_response.json()
+        
+        # Print search response status and result count
+        print(f"Wikipedia search status: {search_response.status_code}")
+        search_results = search_data.get("query", {}).get("search", [])
+        print(f"Wikipedia search found {len(search_results)} results")
+        
+        # Check if we found any results
+        if not search_data.get("query", {}).get("search"):
+            print(f"No Wikipedia results found for: {topic}")
+            return []
+            
+        # Get the page title from the search result
+        page_title = search_data["query"]["search"][0]["title"]
+        print(f"Found Wikipedia article: '{page_title}'")
+        
+        # Now get the summary of the article
+        summary_url = "https://en.wikipedia.org/w/api.php"
+        summary_params = {
+            "action": "query",
+            "prop": "extracts",
+            "exintro": True,  # Only get the intro section
+            "explaintext": True,  # Get plain text, not HTML
+            "titles": page_title,
+            "format": "json",
+            "utf8": 1,
+        }
+        
+        # Print the full request URL for debugging
+        print(f"Wikipedia summary URL: {summary_url}?{'&'.join([f'{k}={v}' for k, v in summary_params.items()])}")
+        
+        summary_response = requests.get(summary_url, params=summary_params, timeout=10)
+        summary_data = summary_response.json()
+        
+        # Print summary response status
+        print(f"Wikipedia summary status: {summary_response.status_code}")
+        
+        # Extract the page content
+        pages = summary_data["query"]["pages"]
+        page_id = next(iter(pages))  # Get the first (and only) page ID
+        extract = pages[page_id].get("extract", "")
+        
+        # Split into sentences and limit to max_sentences
+        # Simple split on periods, question marks, and exclamation marks
+        sentences = re.split(r'(?<=[.!?])\s+', extract)
+        sentences = [s.strip() for s in sentences if s.strip()]
+        
+        # Remove references like [1], [2], etc.
+        sentences = [re.sub(r'\[\d+\]', '', s) for s in sentences]
+        
+        # Limit to max_sentences
+        if len(sentences) > max_sentences:
+            sentences = sentences[:max_sentences]
+            
+        print(f"Extracted {len(sentences)} sentences from Wikipedia article")
+        
+        return sentences
+        
+    except Exception as e:
+        print(f"Error fetching Wikipedia data: {str(e)}")
+        return []
+
+
+def extract_facts_from_wikipedia(topic: str, min_facts=6):
+    """
+    Extract educational facts about a topic from Wikipedia.
+    
+    Args:
+        topic: The topic to search for
+        min_facts: Minimum number of facts to return
+        
+    Returns:
+        A list of educational facts about the topic
+    """
+    # Search Wikipedia
+    sentences = search_wikipedia(topic)
+    
+    # Filter for sentences that are likely to be factual
+    # (i.e., not too short and contain some substance)
+    facts = []
+    for sentence in sentences:
+        # Skip very short sentences or sentences without much content
+        if len(sentence) < 20 or sentence.count(' ') < 3:
+            continue
+            
+        # Skip sentences that are likely to be about the article itself
+        if "article" in sentence.lower() or "wikipedia" in sentence.lower():
+            continue
+            
+        # Add as a fact
+        facts.append(sentence)
+        
+        # If we have enough facts, stop
+        if len(facts) >= min_facts:
+            break
+            
+    # If we don't have enough facts, add some generic ones until we do
+    while len(facts) < min_facts:
+        # These generic facts are used if Wikipedia doesn't provide enough
+        generic_facts = [
+            f"{topic} is an important subject of study with various aspects to explore.",
+            f"Understanding the key concepts in {topic} helps build a strong foundation of knowledge.",
+            f"Exploring {topic} involves examining both theoretical principles and practical applications.",
+            f"Learning about {topic} connects to many other areas of knowledge.",
+            f"{topic} has evolved over time as our understanding has deepened.",
+            f"Studying {topic} involves critical thinking and analytical skills."
+        ]
+        
+        # Add a generic fact that we haven't used yet
+        for fact in generic_facts:
+            if fact not in facts:
+                facts.append(fact)
+                break
+                
+    print(f"Extracted {len(facts)} facts from Wikipedia:")
+    for i, fact in enumerate(facts):
+        print(f"  Fact {i+1}: {fact}")
+        
+    return facts
+
+
 def generate_lyrics_for_topic(topic: str, genre: str) -> str:
     """Generate educational lyrics for a given topic and genre.
     
-    In a real implementation, this would call an LLM like OpenAI's o4-mini.
-    For now, we provide topic-specific educational lyrics.
+    Uses Wikipedia as a source for educational content when possible.
+    Falls back to domain-specific educational templates when needed.
     """
     # Extract core concept without extra words like "the", "and", etc.
     core_topic = topic.lower().replace("the ", "").replace("about ", "").strip()
     
-    # Map of educational facts for common educational topics
-    educational_facts = {
+    # First, try to get facts from Wikipedia
+    wiki_facts = extract_facts_from_wikipedia(topic)
+    
+    # If we got facts from Wikipedia, use those
+    facts = []
+    if wiki_facts:
+        facts = wiki_facts
+        print(f"Using {len(facts)} Wikipedia facts for lyrics")
+    else:
+        print("No Wikipedia facts found, using domain-specific templates")
+        
+        # If Wikipedia search failed, fall back to our domain-specific templates
+        # Map of educational facts for common educational topics
+        educational_facts = {
         # Biology
         "photosynthesis": [
             "Plants capture sunlight with chlorophyll",
@@ -1046,14 +1212,35 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
                 f"Mental focus and psychology play important roles in {topic}"
             ]
             
-    # Ensure facts are directly about the user's topic by embedding the topic name
-    # This guarantees relevance even for topics we don't have specific templates for
-    for i in range(len(facts)):
-        if topic.lower() not in facts[i].lower():
-            # Modify the fact to explicitly mention the topic if it doesn't already
-            facts[i] = facts[i].replace("this subject", topic).replace("this topic", topic)
+    # For template-based facts (not Wikipedia), ensure topic name is embedded
+    # For Wikipedia facts, this is not needed as they are already about the topic
+    if not wiki_facts:
+        # Ensure facts are directly about the user's topic by embedding the topic name
+        # This guarantees relevance even for topics we don't have specific templates for
+        for i in range(len(facts)):
+            if topic.lower() not in facts[i].lower():
+                # Modify the fact to explicitly mention the topic if it doesn't already
+                facts[i] = facts[i].replace("this subject", topic).replace("this topic", topic)
     
-    print(f"Generated facts for topic '{topic}':")
+    # If the facts are too long (which can happen with Wikipedia), truncate them 
+    # to a reasonable length for song lyrics (max 150 chars)
+    for i in range(len(facts)):
+        if len(facts[i]) > 150:
+            # Try to truncate at a logical point (period, comma, etc.)
+            truncation_points = [facts[i].rfind('. ', 0, 150), 
+                                facts[i].rfind(', ', 0, 150),
+                                facts[i].rfind(' - ', 0, 150),
+                                facts[i].rfind(' and ', 0, 150),
+                                facts[i].rfind(' or ', 0, 150)]
+            best_point = max(truncation_points)
+            
+            if best_point > 30:  # Only truncate if we can find a good point that leaves enough content
+                facts[i] = facts[i][:best_point+1]  # Keep the punctuation
+            elif len(facts[i]) > 150:
+                # If no good truncation point, just cut at 150 and add ellipsis
+                facts[i] = facts[i][:147] + "..."
+    
+    print(f"Final facts for lyrics about '{topic}':")
     for i, fact in enumerate(facts):
         print(f"  Fact {i+1}: {fact}")
     
