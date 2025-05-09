@@ -2,8 +2,8 @@
   <div>
     <header class="header">
       <div class="logo-container">
-        <!-- Use the ASU logo from public directory -->
-        <img src="/images/asu-logo.png" alt="ASU Logo" class="asu-logo" />
+        <!-- Use the ASU vertical logo from external URL -->
+        <img src="https://careercatalyst.asu.edu/images/asu-vertical-logo.webp" alt="ASU Logo" class="asu-logo" />
         <h1 class="site-title">Study Music</h1>
       </div>
       <button class="login-button">Login / Sign up</button>
@@ -797,7 +797,7 @@ body {
 }
 
 .asu-logo {
-  height: 40px;
+  height: 60px;
   margin-right: 1rem;
   object-fit: contain;
 }
