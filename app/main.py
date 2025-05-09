@@ -183,19 +183,19 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     print(f"\n===== MUSIC GENERATION REQUEST =====\nGenre requested: {genre}\nTopic: {topic}\nDuration: {duration} seconds\nCustom prompt provided: {'Yes' if prompt else 'No'}\n===================================\n")
     """Generate music using Beatoven.ai API"""
     # https://github.com/Beatoven/public-api/blob/main/docs/api-spec.md
-    
+
     if not BEATOVEN_API_KEY:
         raise HTTPException(
             status_code=500,
             detail="Beatoven API key is required but not configured"
         )
-        
-    # Determine if we should use test mode - either explicit request or environment setting
-    is_test_mode = test_mode or BEATOVEN_API_KEY == "TEST_MODE"
-    
+
+    # ONLY use test mode if explicitly requested via query parameter
+    is_test_mode = test_mode and test_mode == True
+
     # Log whether we're using test mode or live API
     if is_test_mode:
-        print("Using TEST MODE for this request (mock responses)")
+        print("⚠️ USING TEST MODE for this request (mock responses) - This should ONLY happen in development")
     else:
         print("Using LIVE Beatoven.ai API for this request")
     
@@ -2006,21 +2006,21 @@ async def get_music_task(task_id: str, test_mode: bool = False):
             status_code=500,
             detail="Beatoven API key is required but not configured"
         )
-    
-    # Determine if we should use test mode - either explicit request or environment setting
-    is_test_mode = test_mode or BEATOVEN_API_KEY == "TEST_MODE"
-    
-    # Log task request 
+
+    # ONLY use test mode if explicitly requested via query parameter
+    is_test_mode = test_mode and test_mode == True
+
+    # Log task request
     print(f"===== TASK STATUS REQUEST =====")
     print(f"Task ID: {task_id}")
     print(f"Test mode: {is_test_mode}")
+
+    if is_test_mode:
+        print("⚠️ USING TEST MODE for task status - This should ONLY happen in development")
     
     try:
-        # Handle test/fallback mode for known test IDs or if task ID contains "fallback"
-        if (is_test_mode or 
-            task_id.startswith("test-") or 
-            task_id.startswith("fallback-") or
-            "fallback" in task_id):
+        # ONLY use test mode if explicitly requested, or for clearly marked test/fallback IDs
+        if (is_test_mode or task_id.startswith("fallback-")):
             
             print(f"Using mock task status response for {task_id}")
             
@@ -2423,25 +2423,31 @@ async def generate_music_endpoint(request: MusicGenerationRequest):
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 @app.get("/api/music/track/{track_id}")
-async def get_track_status(track_id: str):
+async def get_track_status(track_id: str, test_mode: bool = False):
     """Get the status of a Beatoven.ai track.
 
     This function first checks if the track_id corresponds to a task_id in Beatoven.ai.
     If it does, it retrieves the task information which includes the track_url,
     which is the URL to the final, composed music track.
+
+    If test_mode=true is passed as a query parameter, mock responses will be used.
+    Production should NEVER use test_mode.
     """
     if not BEATOVEN_API_KEY:
         raise HTTPException(
             status_code=500,
             detail="Beatoven API key is required but not configured"
         )
-    
-    # For testing purposes, we'll use mock responses when BEATOVEN_API_KEY is set to "TEST_MODE"
-    is_test_mode = BEATOVEN_API_KEY == "TEST_MODE"
+
+    # ONLY use test mode if explicitly requested via query parameter
+    is_test_mode = test_mode and test_mode == True
+
+    if is_test_mode:
+        print("⚠️ USING TEST MODE for track endpoint - This should ONLY happen in development")
     
     try:
-        # Also treat fallback tracks as test mode
-        if (is_test_mode and track_id.startswith("test-track-")) or track_id.startswith("fallback-track-"):
+        # ONLY use test mode if explicitly requested via query parameter, or for fallback tracks
+        if is_test_mode or track_id.startswith("fallback-track-"):
             print("TEST MODE: Using mock track status response")
             # Parse genre from track ID (if available)
             parts = track_id.split("-")
