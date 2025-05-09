@@ -391,23 +391,12 @@ export default {
         if (!endpoint.endsWith('/')) {
           endpoint += '/'
         }
-        
-        // Check if we're using localhost and modify endpoint accordingly
-        const isLocalDevelopment = window.location.hostname === 'localhost' || 
-                                  window.location.hostname === '127.0.0.1';
-                                  
-        // Use the generic endpoint for local development as a fallback
-        if (isLocalDevelopment) {
-          console.log('Local development detected, using generic endpoint');
-          endpoint += 'generate'; // Use the generic endpoint that works
-          
-          // When using the generic endpoint, we need to adjust our request
-          this.usingGenericEndpoint = true;
-        } else {
-          // In production, use the specific music endpoint
-          endpoint += 'music/generate';
-          this.usingGenericEndpoint = false;
-        }
+
+        // We'll always use the specific music endpoint for consistency
+        endpoint += 'music/generate';
+        this.usingGenericEndpoint = false;
+
+        console.log('Using endpoint:', endpoint);
         
         console.log('Making request to:', endpoint)
         
