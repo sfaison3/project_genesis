@@ -21,6 +21,10 @@ COPY --from=frontend-build /app/frontend/dist /app/static
 RUN mkdir -p /app/static/images
 COPY --from=frontend-build /app/frontend/public/images /app/static/images
 
+# Also copy the images to assets directory for alternative references
+RUN mkdir -p /app/static/assets/images
+COPY --from=frontend-build /app/frontend/public/images /app/static/assets/images
+
 # Install backend dependencies
 COPY app/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
@@ -52,6 +56,9 @@ def mount_static_files(app: FastAPI):
 
     # Explicitly mount the images directory
     app.mount("/images", StaticFiles(directory="static/images"), name="images")
+
+    # Also serve images from assets directory
+    app.mount("/assets/images", StaticFiles(directory="static/assets/images"), name="assets_images")
 
     @app.get("/")
     async def serve_frontend():
