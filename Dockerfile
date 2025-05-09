@@ -21,9 +21,13 @@ COPY --from=frontend-build /app/frontend/dist /app/static
 RUN mkdir -p /app/static/images
 COPY --from=frontend-build /app/frontend/public/images /app/static/images
 
-# Also copy the images to assets directory for alternative references
+# Copy images to both directories for flexibility
 RUN mkdir -p /app/static/assets/images
 COPY --from=frontend-build /app/frontend/public/images /app/static/assets/images
+
+# Copy any other public files
+RUN mkdir -p /app/static/assets
+COPY --from=frontend-build /app/frontend/public /app/static
 
 # Install backend dependencies
 COPY app/requirements.txt ./
