@@ -12,7 +12,7 @@
         <button @click.prevent="clearFile" class="clear-button">×</button>
       </div>
       <div v-else class="upload-prompt">
-        <span class="upload-icon">📁</span>
+        <!-- No folder icon -->
         <p class="drop-text">Drop your file here or</p>
         <button @click="triggerFileInput" class="upload-button">
           <slot>Upload</slot>
@@ -79,17 +79,18 @@ export default {
 }
 
 .drop-area {
-  border: 2px dashed white;
+  border: 2px dashed #ccc;
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
   transition: all 0.3s ease;
   cursor: pointer;
-  min-height: 120px;
+  min-height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  background-color: #f9f9f9;
 }
 
 .active-drop {
@@ -119,7 +120,7 @@ export default {
 }
 
 .upload-button {
-  background-color: #7c4dff;
+  background-color: #8C1D40; /* ASU maroon */
   color: white;
   border: none;
   border-radius: 20px;
@@ -130,7 +131,7 @@ export default {
 }
 
 .upload-button:hover {
-  background-color: #6a3de8;
+  background-color: #6a0c2d; /* Darker ASU maroon */
 }
 
 .file-info {
@@ -149,7 +150,7 @@ export default {
 .clear-button {
   background: none;
   border: none;
-  color: white;
+  color: #212121;
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0;

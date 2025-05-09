@@ -904,9 +904,11 @@ body {
 .input-section {
   flex: 1;
   padding: 2rem;
-  background-color: #212121;
+  background-color: white;
   border-radius: 12px;
-  color: white;
+  color: #212121;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border: 1px solid #e0e0e0;
 }
 
 .learning-input, .file-upload-section, .genre-section {
@@ -935,7 +937,7 @@ body {
 .file-feedback {
   margin-top: 0.5rem;
   font-size: 0.9rem;
-  color: white;
+  color: #212121;
 }
 
 .file-success {
