@@ -306,6 +306,7 @@ export default {
   },
   methods: {
     selectGenre(genreId) {
+      console.log(`Genre selected: ${genreId}`)
       this.selectedGenre = genreId
     },
     
@@ -389,6 +390,10 @@ export default {
         // Find the currently selected genre's name from our genres list
         const selectedGenreName = this.genres.find(g => g.id === this.selectedGenre)?.name || this.selectedGenre;
         
+        // Log the selected genre details for debugging
+        console.log(`\nSelected genre ID: ${this.selectedGenre}`)
+        console.log(`Selected genre name: ${selectedGenreName}`)
+        
         // Create a custom prompt that includes the selected genre
         const customPrompt = `Create a ${selectedGenreName} style music about ${this.learningTopic}. Make sure the music has a strong ${selectedGenreName} feel and sound.`;
 
@@ -418,7 +423,8 @@ export default {
           // For now, just note the file but don't try to upload it
         }
         
-        console.log('Request payload:', requestBody)
+        console.log('Request payload:', JSON.stringify(requestBody, null, 2))
+        console.log(`Using Beatoven genre: ${requestBody.genre}`)
         
         // Use XMLHttpRequest instead of fetch for better compatibility
         const xhr = new XMLHttpRequest()

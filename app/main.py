@@ -144,6 +144,7 @@ def get_beatoven_genres():
     ]
 
 def generate_music(genre: str, duration: int, topic: str, prompt: str = None, poll_for_completion: bool = False, test_mode: bool = False):
+    print(f"\n===== MUSIC GENERATION REQUEST =====\nGenre requested: {genre}\nTopic: {topic}\nDuration: {duration} seconds\nCustom prompt provided: {'Yes' if prompt else 'No'}\n===================================\n")
     """Generate music using Beatoven.ai API"""
     # https://github.com/Beatoven/public-api/blob/main/docs/api-spec.md
     
@@ -167,15 +168,29 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     
     # Use provided prompt or get a random one from the genre-specific prompts
     music_prompt = prompt
+    
+    # Find a user-friendly display name for the genre
+    genre_display = genre.replace("_", " ").replace("-", " ").title()
+    
     if not music_prompt:
         # First check our preset prompts
         if normalized_genre in GENRE_PROMPTS:
+            print(f"Found preset prompt for genre: {normalized_genre}")
             music_prompt = random.choice(GENRE_PROMPTS[normalized_genre])
         else:
             # For custom/unsupported genres, create a generic prompt that highlights the genre name
-            # Find the display name if possible
-            genre_display = genre.replace("_", " ").replace("-", " ").title()
+            print(f"No preset prompts for genre: {normalized_genre}, using generic template")
             music_prompt = f"Create a {genre_display} style music that emphasizes the key elements of this genre. Make it suitable for learning about {topic}."
+    
+    # Ensure the genre is explicitly mentioned in the prompt if it's not already
+    if genre_display.lower() not in music_prompt.lower():
+        print(f"Adding genre '{genre_display}' explicitly to the prompt")
+        music_prompt = f"Create music in {genre_display} style: {music_prompt}"
+    
+    # Ensure the topic is explicitly mentioned in the prompt if it's not already
+    if topic.lower() not in music_prompt.lower():
+        print(f"Adding topic '{topic}' explicitly to the prompt")
+        music_prompt = f"{music_prompt} This music should be excellent for learning about {topic}."
     
     # Log the prompt we're using
     print(f"Using prompt for Beatoven.ai: '{music_prompt}'")
@@ -205,6 +220,14 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
             "genre": beatoven_genre,
             "customPrompt": music_prompt
         }
+        
+        # Log the final payload we're sending to Beatoven.ai (for debugging)
+        print(f"\n===== BEATOVEN.AI PAYLOAD =====")
+        print(f"Track name: {payload['name']}")
+        print(f"Duration: {payload['duration']} seconds")
+        print(f"Genre: {payload['genre']}")
+        print(f"Custom prompt: {payload['customPrompt']}")
+        print(f"================================\n")
         
         # For test mode, use a mock response instead of making an actual API call
         if is_test_mode:
@@ -1514,18 +1537,45 @@ Understanding {topic} sets your mind free!
 
 def map_to_beatoven_genre(genre):
     """Maps our genre to Beatoven.ai supported genres"""
-    # First normalize the genre by converting to lowercase and replacing hyphens with underscores
-    normalized_genre = genre.lower().replace("-", "_")
     
-    # This is a simple mapping function - expand as needed
+    print(f"\n===== MAPPING GENRE =====\nInput genre: '{genre}'")
+    
+    # First normalize the genre by converting to lowercase and replacing hyphens with underscores
+    # We need to handle both formats because the frontend uses hyphens (eg. "hip-hop") but some
+    # backend code uses underscores (eg. "hip_hop")
+    normalized_genre = genre.lower().replace("-", "_")
+    print(f"Normalized genre: '{normalized_genre}'")
+    
+    # These are the genres directly supported by Beatoven.ai
+    # Based on your BEATOVEN_API.md documentation
+    beatoven_supported_genres = [
+        "hip-hop",  # Note the hyphen (NOT underscore)
+        "country", 
+        "pop", 
+        "rock", 
+        "jazz", 
+        "classical", 
+        "electronic", 
+        "acoustic"
+    ]
+    
+    # First check: if genre is already in Beatoven's direct format, use it
+    if genre.lower() in beatoven_supported_genres:
+        print(f"Genre '{genre}' is directly supported by Beatoven.ai")
+        return genre.lower()
+    
+    # Create a mapping dictionary for genres that need translation
+    # Map normalized genres (with underscores) to Beatoven supported genres (with hyphens where needed)
     genre_map = {
-        # Map normalized genres to Beatoven supported genres
+        # Key genre mappings
         "hip_hop": "hip-hop",
+        "hip-hop": "hip-hop",
         "rap": "hip-hop",  # Map rap to hip-hop
         "country": "country",
         "pop": "pop",
         "rock": "rock",
         "heavy_metal": "rock",  # Map heavy metal to rock
+        "heavy-metal": "rock",  # Also check with hyphen
         "punk": "rock",  # Map punk to rock
         "grunge": "rock",  # Map grunge to rock
         "jazz": "jazz",
@@ -1538,19 +1588,24 @@ def map_to_beatoven_genre(genre):
         "acoustic": "acoustic",
         "soul": "jazz",  # Map soul to jazz as it's the closest match
         "blues": "jazz",  # Map blues to jazz as it's the closest match
-        "k_pop": "pop"  # Map K-pop to pop
+        "k_pop": "pop",  # Map K-pop to pop
+        "k-pop": "pop",  # Also check with hyphen
     }
     
-    # Also check with the original format in case we need it
+    # Try with the normalized version first
     result = genre_map.get(normalized_genre)
     
-    # If no mapping found, try the original genre string or return the original
+    # If no match, try with the original version
     if result is None:
-        print(f"No direct mapping for genre '{genre}', using default")
-        # For unknown genres, return a safe default that Beatoven supports
-        result = genre_map.get(genre.lower(), "pop")
+        result = genre_map.get(genre.lower())
         
-    print(f"Mapped genre '{genre}' to Beatoven genre '{result}'")
+    # If still no match, use a safe default
+    if result is None:
+        print(f"No mapping found for genre '{genre}', defaulting to 'pop'")
+        result = "pop"
+    
+    print(f"Final genre mapping: '{genre}' → '{result}'")
+    print("==========================\n")
     return result
 
 # Routes
