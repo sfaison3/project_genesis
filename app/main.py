@@ -77,6 +77,7 @@ class GenerateRequest(BaseModel):
     genre: Optional[str] = "pop"  # For music generation - pop, rock, jazz, classical, etc.
     duration: Optional[int] = 60  # Duration in seconds for music generation
     learning_topic: Optional[str] = None  # Topic the user is learning about
+    custom_prompt: Optional[str] = None  # Custom prompt for music generation
 
 class GenerateResponse(BaseModel):
     output: str
@@ -153,11 +154,25 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     
     # Use provided prompt or get a random one from the genre-specific prompts
     music_prompt = prompt
-    if not music_prompt and genre.lower() in GENRE_PROMPTS:
-        music_prompt = random.choice(GENRE_PROMPTS[genre.lower()])
+    if not music_prompt:
+        # First check our preset prompts
+        if genre.lower() in GENRE_PROMPTS:
+            music_prompt = random.choice(GENRE_PROMPTS[genre.lower()])
+        else:
+            # For custom/unsupported genres, create a generic prompt that highlights the genre name
+            music_prompt = f"Create a {genre} style music that emphasizes the key elements of this genre. Make it suitable for learning about {topic}."
+    
+    # Log the prompt we're using
+    print(f"Using prompt for Beatoven.ai: '{music_prompt}'")
     
     track_name = f"Learning about {topic}"
     beatoven_genre = map_to_beatoven_genre(genre)
+    
+    # If the genre isn't in our mapping, default to a general genre like "pop"
+    # But we'll keep the specific genre flavor through the custom prompt
+    if beatoven_genre == genre and genre.lower() not in ["pop", "rock", "jazz", "classical", "electronic", "hip-hop", "country", "acoustic"]:
+        print(f"Genre '{genre}' not directly supported by Beatoven.ai, defaulting to 'pop' but using custom prompt")
+        beatoven_genre = "pop"
     
     # Get the track URL from Beatoven API
     preview_url = None
@@ -1111,10 +1126,17 @@ async def generate(request: GenerateRequest, test_mode: bool = False):
         elif model == "beatoven":
             # Generate music using Beatoven.ai
             topic = request.learning_topic or "general learning"
+            
+            # Check for custom prompt in the request
+            custom_prompt = getattr(request, 'custom_prompt', None)
+            if custom_prompt:
+                print(f"Using custom prompt from request: {custom_prompt}")
+            
             music_result = generate_music(
                 genre=request.genre,
                 duration=request.duration,
                 topic=topic,
+                prompt=custom_prompt,  # Pass the custom prompt
                 poll_for_completion=True,  # Try to wait for the track to complete
                 test_mode=test_mode  # Pass the test mode flag
             )
