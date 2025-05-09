@@ -4,6 +4,9 @@ Repository for ASU AI Spark Challenge
 
 Genesis is a music learning app that helps users generate custom songs about topics they're studying. It leverages AI models to create educational content that makes learning more fun and engaging through rhythm, rhyme, and repetition.
 
+## Prompts and Rules
+- The main prompts are located in CLAUDE.md and CLAUDE.rules files. There are also lyrical prompt helpers in main.py.
+
 ## Project Structure
 
 - `app/` - FastAPI backend
