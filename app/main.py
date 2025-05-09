@@ -2505,19 +2505,30 @@ async def get_track_status(track_id: str):
         # Generate lyrics for the track
         lyrics = generate_lyrics_for_topic(topic, track_genre)
         
-        # Check if track is completed and has a preview URL
+        # Check if track is completed and has a URL
         is_completed = track_data.get("status") == "COMPLETED"
         preview_url = track_data.get("previewUrl")
-        
+        track_url = track_data.get("track_url")  # Get track_url from response
+
+        # Use track_url if available, otherwise fall back to previewUrl
+        final_url = track_url or preview_url
+
+        # Log both URLs for debugging
+        print(f"Track URL: {track_url}")
+        print(f"Preview URL: {preview_url}")
+        print(f"Using final URL: {final_url}")
+
         return {
             "track_id": track_id,
             "status": track_data.get("status", "UNKNOWN"),
             "preview_url": preview_url,
+            "track_url": track_url,  # Include both URLs in response
+            "output_url": final_url,  # Use the best available URL
             "created_at": track_data.get("createdAt"),
             "updated_at": track_data.get("updatedAt"),
             "title": track_name,
             "lyrics": lyrics,
-            "is_ready": is_completed and preview_url and preview_url.endswith('.mp3')
+            "is_ready": is_completed and final_url and (final_url.endswith('.mp3') or final_url.endswith('.wav'))
         }
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Beatoven API error: {str(e)}")
