@@ -126,29 +126,6 @@
           ></audio>
           
           <div class="player-controls">
-          
-          <div class="lyrics-section">
-            <div class="lyrics-header">
-              <h3>Lyrics</h3>
-              <button 
-                class="expand-btn"
-                @click="lyricsExpanded = !lyricsExpanded"
-              >
-                <img 
-                  :src="lyricsExpanded ? icons.collapse : icons.expand" 
-                  :alt="lyricsExpanded ? 'Collapse' : 'Expand'" 
-                  class="expand-icon"
-                />
-              </button>
-            </div>
-            <div 
-              class="lyrics-content"
-              :class="{ 'lyrics-expanded': lyricsExpanded }"
-            >
-              <p v-if="lyrics">{{ lyrics }}</p>
-              <p v-else class="placeholder-text">Lyrics will appear here after generating music</p>
-            </div>
-          </div>
             <div class="control-buttons">
               <button class="control-btn" aria-label="Shuffle">
                 <img :src="icons.shuffle" alt="Shuffle" class="control-icon" />
@@ -194,6 +171,30 @@
               <span class="total-time">{{ formattedDuration }}</span>
             </div>
           </div>
+          
+          <div class="lyrics-section">
+            <div class="lyrics-header">
+              <h3>Lyrics</h3>
+              <button 
+                class="expand-btn"
+                @click="lyricsExpanded = !lyricsExpanded"
+              >
+                <img 
+                  :src="lyricsExpanded ? icons.collapse : icons.expand" 
+                  :alt="lyricsExpanded ? 'Collapse' : 'Expand'" 
+                  class="expand-icon"
+                />
+              </button>
+            </div>
+            <div 
+              class="lyrics-content"
+              :class="{ 'lyrics-expanded': true }"
+            >
+              <p v-if="lyrics">{{ lyrics }}</p>
+              <p v-else class="placeholder-text">Lyrics will appear here after generating music</p>
+            </div>
+          </div>
+          
         </div>
       </div>
     </main>
@@ -229,7 +230,7 @@ export default {
       apiStatus: null,
       isLoading: false,
       showMoreGenres: false,
-      lyricsExpanded: false,
+      lyricsExpanded: true,
       usingGenericEndpoint: false, // Track which endpoint we're using
       // Song/music data
       songTitle: 'Song Title',
@@ -1090,6 +1091,8 @@ body {
 
 .player-controls {
   padding: 1rem 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .control-buttons {
