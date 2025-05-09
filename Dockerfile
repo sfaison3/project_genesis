@@ -49,11 +49,14 @@ import os
 def mount_static_files(app: FastAPI):
     # Mount static files from the frontend build
     app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
-    
+
+    # Explicitly mount the images directory
+    app.mount("/images", StaticFiles(directory="static/images"), name="images")
+
     @app.get("/")
     async def serve_frontend():
         return FileResponse("static/index.html")
-    
+
     @app.get("/{path:path}")
     async def serve_frontend_paths(path: str):
         # Only serve known static files or fallback to index.html for SPA routing
