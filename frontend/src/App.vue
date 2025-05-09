@@ -2,7 +2,7 @@
   <div>
     <header class="header">
       <div class="logo-container">
-        <img src="./assets/asu-logo.svg" alt="ASU Logo" class="asu-logo" />
+        <img src="./assets/logos/asu-logo.png" alt="ASU Logo" class="asu-logo" />
         <h1 class="site-title">Study Music</h1>
       </div>
       <button class="login-button">Login / Sign up</button>
@@ -795,6 +795,7 @@ body {
 .asu-logo {
   height: 40px;
   margin-right: 1rem;
+  object-fit: contain;
 }
 
 .site-title {
