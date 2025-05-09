@@ -574,14 +574,16 @@ export default {
           this.songTitle = data.title || `Song about ${this.learningTopic}`
           this.lyrics = data.lyrics || 'Lyrics not available for this song.'
           this.songDescription = data.description || 'The why, and how this will benefit you'
-          
+
           // If album art was generated
           if (data.album_art) {
             this.albumArt = data.album_art
           }
-        } else if (data.output_url || data.track_url) {
+        } else if (data.track_url || data.output_url) {
           // This is from the /api/music/generate endpoint format
-          this.audioUrl = data.output_url || data.track_url || sampleAudioUrl
+          // IMPORTANT: Prioritize track_url over output_url
+          console.log('Using track_url from response:', data.track_url);
+          this.audioUrl = data.track_url || data.output_url || sampleAudioUrl
           this.songTitle = data.title || `Song about ${this.learningTopic}`
           this.lyrics = data.lyrics || 'Lyrics not available for this song.'
           // Find genre display name

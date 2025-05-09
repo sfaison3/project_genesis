@@ -2398,7 +2398,12 @@ async def generate_music_endpoint(request: MusicGenerationRequest):
 
 @app.get("/api/music/track/{track_id}")
 async def get_track_status(track_id: str):
-    """Get the status of a Beatoven.ai track"""
+    """Get the status of a Beatoven.ai track.
+
+    This function first checks if the track_id corresponds to a task_id in Beatoven.ai.
+    If it does, it retrieves the task information which includes the track_url,
+    which is the URL to the final, composed music track.
+    """
     if not BEATOVEN_API_KEY:
         raise HTTPException(
             status_code=500,
