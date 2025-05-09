@@ -115,6 +115,18 @@
             </div>
           </div>
 
+          <audio 
+            ref="audioPlayer" 
+            :src="audioUrl" 
+            @timeupdate="updateProgress" 
+            @loadedmetadata="onAudioLoaded"
+            @ended="onAudioEnded"
+            @error="onAudioError"
+            style="display: none;"
+          ></audio>
+          
+          <div class="player-controls">
+          
           <div class="lyrics-section">
             <div class="lyrics-header">
               <h3>Lyrics</h3>
@@ -137,18 +149,6 @@
               <p v-else class="placeholder-text">Lyrics will appear here after generating music</p>
             </div>
           </div>
-          
-          <audio 
-            ref="audioPlayer" 
-            :src="audioUrl" 
-            @timeupdate="updateProgress" 
-            @loadedmetadata="onAudioLoaded"
-            @ended="onAudioEnded"
-            @error="onAudioError"
-            style="display: none;"
-          ></audio>
-          
-          <div class="player-controls">
             <div class="control-buttons">
               <button class="control-btn" aria-label="Shuffle">
                 <img :src="icons.shuffle" alt="Shuffle" class="control-icon" />
@@ -1057,8 +1057,10 @@ body {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 1.5rem;
+  margin-top: 2rem;
   margin-bottom: 2rem;
   background-color: #FFF5D5; /* Light yellow to match design */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .lyrics-header {
@@ -1076,13 +1078,13 @@ body {
 
 .lyrics-content {
   white-space: pre-line;
-  max-height: 150px;
+  max-height: 300px;
   overflow-y: hidden;
   transition: max-height 0.3s ease;
 }
 
 .lyrics-expanded {
-  max-height: 500px;
+  max-height: 600px;
   overflow-y: auto;
 }
 

@@ -180,7 +180,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         else:
             # For custom/unsupported genres, create a generic prompt that highlights the genre name
             print(f"No preset prompts for genre: {normalized_genre}, using generic template")
-            music_prompt = f"Create a {genre_display} style music that emphasizes the key elements of this genre. Make it suitable for learning about {topic}."
+            music_prompt = f"Create a {genre_display} style music that emphasizes the key elements of this genre. Make it suitable for learning about {topic}. Ensure the output is in English language only."
     
     # Ensure the genre is explicitly mentioned in the prompt if it's not already
     if genre_display.lower() not in music_prompt.lower():
@@ -191,6 +191,10 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     if topic.lower() not in music_prompt.lower():
         print(f"Adding topic '{topic}' explicitly to the prompt")
         music_prompt = f"{music_prompt} This music should be excellent for learning about {topic}."
+        
+    # Always ensure we're requesting English language output
+    if "english" not in music_prompt.lower():
+        music_prompt = f"{music_prompt} All output must be in English language only."
     
     # Log the prompt we're using
     print(f"Using prompt for Beatoven.ai: '{music_prompt}'")
