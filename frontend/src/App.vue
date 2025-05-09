@@ -63,10 +63,10 @@
               <button 
                 v-for="genre in displayedGenres.slice(0, 12)" 
                 :key="genre.id" 
-                :class="['genre-btn', {'active': selectedGenre === genre.id}]" 
+                :class="['genre-btn', {'active': selectedGenre === genre.id, 'genre-selected': selectedGenre === genre.id}]" 
                 @click="selectGenre(genre.id)"
               >
-                {{ genre.name }}
+                {{ genre.name }} {{ selectedGenre === genre.id ? '✓' : '' }}
               </button>
               <button 
                 v-if="displayedGenres.length > 12"
@@ -81,15 +81,15 @@
               <button 
                 v-for="genre in displayedGenres.slice(12)" 
                 :key="genre.id" 
-                :class="['genre-btn', {'active': selectedGenre === genre.id}]" 
+                :class="['genre-btn', {'active': selectedGenre === genre.id, 'genre-selected': selectedGenre === genre.id}]" 
                 @click="selectGenre(genre.id)"
               >
-                {{ genre.name }}
+                {{ genre.name }} {{ selectedGenre === genre.id ? '✓' : '' }}
               </button>
             </div>
           </div>
 
-          <button class="compose-btn" @click="generateMusic">Compose</button>
+          <button class="compose-btn" @click="generateMusic" :disabled="isLoading">{{ isLoading ? 'Composing...' : 'Compose' }}</button>
         </div>
 
         <div class="output-section">
@@ -307,7 +307,13 @@ export default {
   methods: {
     selectGenre(genreId) {
       console.log(`Genre selected: ${genreId}`)
-      this.selectedGenre = genreId
+      // Force a refresh of the selection by clearing it first
+      this.selectedGenre = null
+      // Use a small timeout to ensure UI updates
+      setTimeout(() => {
+        this.selectedGenre = genreId
+        console.log(`Genre selection updated to: ${this.selectedGenre}`)
+      }, 10)
     },
     
     handleFileUpload(file) {
@@ -354,6 +360,16 @@ export default {
       if (!this.learningTopic.trim()) {
         alert('Please enter what you want to learn about!')
         return
+      }
+      
+      // Force refresh of the selected genre before generating
+      console.log(`Using selected genre for generation: ${this.selectedGenre}`)
+      const currentGenre = this.selectedGenre
+      
+      // Reset audio player and UI state for a fresh generation
+      if (this.$refs.audioPlayer) {
+        this.$refs.audioPlayer.pause()
+        this.isPlaying = false
       }
       
       this.isLoading = true
@@ -931,6 +947,10 @@ body {
 .genre-btn.active {
   background-color: #8C1D40; /* ASU maroon */
   color: white;
+  font-weight: bold;
+  transform: scale(1.05); /* Slightly larger to stand out */
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
 
 .genre-btn.more-btn {

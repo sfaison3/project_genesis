@@ -1300,239 +1300,116 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
         hook_phrase = f"Learn it ({short_topic}), know it ({short_topic}), own it!"
         
         return f"""
-[Intro]
-Yeah... Educational beats droppin'
-{hook_phrase}
-Let's get this knowledge flowin'!
+[Educational Facts about {topic} - Hip Hop Style]
 
 [Verse 1]
-Listen up, class in session about {topic} (Yo!)
-Time to break it down with facts that are impressive (What!)
-{facts[0]} (That's right!)
-{facts[1]} (Remember that!)
-That's just the beginning of what you're learning today
-Knowledge is power, so let me light the way
+{facts[0]} (Remember this!)
+{facts[1]} (That's key knowledge!)
+{facts[2]} (Critical fact!)
 
 [Hook]
 {hook_phrase}
-{hook_phrase}
-
-[Chorus]
-{topic.capitalize()} knowledge, expanding your mind (Expand it!)
-{facts[2]} (Learn it!)
-{topic.capitalize()} wisdom, it's your time to shine (Shine on!)
-{facts[3]} (Know that!)
-{hook_phrase}
 
 [Verse 2]
-Back to the lesson, there's more you should know (Listen up!)
-{facts[4]} (Facts only!)
-{facts[5]} (That's science!)
-Now you've got the facts to help your knowledge grow
-Remember these points when it's time for the test
-Your education journey is no time to rest
+{facts[3]} (This is important!)
+{facts[4]} (You need to know this!)
+{facts[5]} (Essential information!)
 
-[Outro]
+[Final Hook]
 {hook_phrase}
-{hook_phrase}
-Now you know about {topic}! (Drop the mic)
+Mastering {topic} knowledge!
 """
     elif normalized_genre in ["country", "folk"]:
         # Create a melodic refrain based on topic
         refrain = f"Oh, the wisdom of {short_topic}, stays with you forever more"
         
         return f"""
-[Intro]
-(Gentle guitar strumming)
-{refrain}...
+[Educational Facts about {topic} - Country Style]
 
 [Verse 1]
-Sitting here learning 'bout {topic}
-Like reading chapters of nature's own book
 {facts[0]}
 {facts[1]}
-These lessons will stay with you along life's road
-Knowledge planted like seeds that have been sowed
-
-[Pre-Chorus]
-And we'll remember...
-
-[Chorus]
-Oh, {topic}, like the sunrise over the hill
 {facts[2]}
-Sweet {topic}, knowledge that gives me a thrill
-{facts[3]}
-{refrain}
 
-[Musical Bridge]
-(Fiddle solo)
+[Refrain]
+{refrain}
 
 [Verse 2]
-The journey of learning continues on
+{facts[3]}
 {facts[4]}
 {facts[5]}
-The wisdom you've gained will carry on
-When you understand, the picture gets clear
-The knowledge of {topic} brings the answers near
 
-[Chorus]
-Oh, {topic}, like the sunrise over the hill
-{facts[2]}
-Sweet {topic}, knowledge that gives me a thrill
-{facts[3]}
-{refrain}
-
-[Outro]
-{refrain}
-(Fade out with gentle humming)
+[Closing]
+These facts about {topic} will help you learn
+Remember them well and watch your knowledge grow
 """
     elif normalized_genre in ["rock", "heavy_metal", "punk", "grunge"]:
         # Create a powerful chant/anthem based on topic
         power_chant = f"{short_topic.upper()}! {short_topic.upper()}! KNOWLEDGE IS POWER!"
         
         return f"""
-[Intro]
-(Heavy guitar riff)
+[Educational Facts about {topic} - Rock Style]
+
+[KEY FACTS]
+1. {facts[0]}
+2. {facts[1]}
+3. {facts[2]}
+
+[POWER SECTION]
 {power_chant}
 
-[Verse 1]
-UNLEASHING THE POWER OF {topic.upper()}
-BLASTING YOUR MIND WITH FACTS TO REMEMBER
-{facts[0]}
-{facts[1]}
-KNOWLEDGE EXPLOSION, INSIDE YOUR BRAIN
-MENTAL FOUNDATIONS THAT WILL REMAIN
+[MORE ESSENTIAL KNOWLEDGE]
+4. {facts[3]}
+5. {facts[4]}
+6. {facts[5]}
 
-[Pre-Chorus]
-Get ready to rock with...
-
-[Chorus]
-{topic.upper()}! FEEL THE POWER!
-{facts[2]}
-{topic.upper()}! EVERY HOUR!
-{facts[3]}
-{power_chant}
-
-[Guitar Solo]
-
-[Verse 2]
-CRANKING UP THE VOLUME ON EDUCATION
-{facts[4]}
-{facts[5]}
-AMPLIFYING WISDOM ACROSS THE NATION
-YOUR MIND IS THE STAGE FOR THIS KNOWLEDGE SHOW
-THE FACTS AND THE DATA YOU NEED TO KNOW
-
-[Chorus]
-{topic.upper()}! FEEL THE POWER!
-{facts[2]}
-{topic.upper()}! EVERY HOUR!
-{facts[3]}
-{power_chant}
-
-[Outro]
-(Final power chord)
-KNOWLEDGE ROCKS!
+[CONCLUSION]
+Master these facts about {topic}!
+KNOWLEDGE IS POWER!
 """
     elif normalized_genre in ["electronic", "eletronic", "disco", "edm"]:
         # Create a repetitive, danceable hook
         beat_hook = f"Learn-learn-learn the {short_topic} (Woo!)"
         
         return f"""
-[Intro]
-(Electronic beats building)
-{beat_hook} [x4]
+[Educational Facts about {topic} - Electronic Style]
 
-[Verse 1]
-Digital knowledge flowing through your mind
-About {topic}, let the learning unwind
-{facts[0]}
-{facts[1]}
-Information surging at the speed of light
-Educational facts that make your future bright
+[DATA SECTION 1]
+* {facts[0]}
+* {facts[1]}
+* {facts[2]}
 
-[Build-up]
-Know it, know it, know it, know it...
-(Beat intensifies)
+[KNOWLEDGE HOOK]
+{beat_hook}
 
-[Drop + Chorus]
-DROP THE FACTS! {topic.upper()}!
-{facts[2]}
-BOOST YOUR MIND! {topic.upper()}!
-{facts[3]}
-{beat_hook} [x4]
+[DATA SECTION 2]
+* {facts[3]}
+* {facts[4]}
+* {facts[5]}
 
-[Bridge]
-(Pulsing synth)
-Processing... knowledge... downloading...
-
-[Verse 2]
-System upgrade for your brain is here
-{facts[4]}
-{facts[5]}
-Educational data becoming clear
-Synchronize your neurons with these crucial facts
-Intelligence increasing with each learning track
-
-[Final Drop + Chorus]
-DROP THE FACTS! {topic.upper()}!
-{facts[2]}
-BOOST YOUR MIND! {topic.upper()}!
-{facts[3]}
-{beat_hook} [x8]
-
-[Outro]
-Knowledge downloaded. Learning complete.
+[LEARNING COMPLETE]
+Essential knowledge about {topic} downloaded to memory.
 """
     else:
-        # General pop structure with catchy elements
-        catchy_hook = f"Learn about {short_topic}, yeah, {short_topic}!"
-        
+        # General default format for any other genre
         return f"""
-[Intro]
-{catchy_hook}
-(Let's go!)
+[Educational Facts about {topic}]
 
-[Verse 1]
-Today we're exploring {topic}
-Essential concepts you need to know
-{facts[0]}
-{facts[1]}
-{facts[2]}
-Building blocks of knowledge help us grow
+IMPORTANT FACTS TO REMEMBER:
 
-[Pre-Chorus]
-And now we know, and now we see...
+1. {facts[0]}
 
-[Chorus]
-{catchy_hook}
-{facts[3]}
-{catchy_hook}
-{facts[4]}
-Knowledge is power, and learning is key
-Understanding {topic} sets your mind free!
+2. {facts[1]}
 
-[Bridge]
-(Instrumental break with melody)
-Learn it, live it, know it, love it...
+3. {facts[2]}
 
-[Verse 2]
-Let's continue learning about {topic}
-Diving deeper into what makes it work
-{facts[5]}
-Understanding brings clarity and light
-The knowledge you gain will serve you right
+4. {facts[3]}
 
-[Chorus]
-{catchy_hook}
-{facts[3]}
-{catchy_hook}
-{facts[4]}
-Knowledge is power, and learning is key
-Understanding {topic} sets your mind free!
+5. {facts[4]}
 
-[Outro]
-{catchy_hook} [Fade out]
+6. {facts[5]}
+
+Mastering these key points will help you understand {topic} completely.
 """
 
 def map_to_beatoven_genre(genre):
