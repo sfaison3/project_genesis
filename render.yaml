@@ -1,11 +1,13 @@
 services:
-  # Web service
+  # Web service (API)
   - type: web
-    name: genesis
-    env: docker
-    region: oregon  # Choose the region closest to your users
-    plan: free  # Adjust as needed: free, starter, etc.
-    branch: main  # Deploy from the main branch
+    name: genesis-api
+    env: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: pip install -r app/requirements.txt && pip install aiofiles
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
     envVars:
       - key: PORT
@@ -18,3 +20,20 @@ services:
         sync: false  # This will be set manually in Render dashboard
       - key: GOOGLE_API_KEY
         sync: false  # This will be set manually in Render dashboard
+
+  # Static site (Frontend)
+  - type: web
+    name: genesis-frontend
+    env: static
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://genesis-api.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
