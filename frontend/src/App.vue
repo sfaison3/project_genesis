@@ -11,8 +11,8 @@
 
     <main class="main-content">
       <div class="hero-section">
-        <h1 class="hero-title">Study Songz</h1>
-        <p class="hero-tagline">Your brain's new favorite playlist</p>
+        <!-- <h1 class="hero-title">Study Songz</h1> -->
+        <!-- <p class="hero-tagline">Your brain's new favorite playlist</p> -->
       </div>
 
       <div class="how-it-works">
