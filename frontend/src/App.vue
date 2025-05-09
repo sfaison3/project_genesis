@@ -209,7 +209,7 @@
       </div>
     </main>
     <footer class="app-footer">
-      <img src="https://raw.githubusercontent.com/sfaison3/project_genesis/refs/heads/main/frontend/public/images/app_footer.png?token=GHSAT0AAAAAADDQD6FLXZI33DYKI7HHR5M62A6AVRA" alt="App Footer" class="footer-image" />
+      <img src="https://asuforlife.asu.edu/api/img/app_footer.png" alt="App Footer" class="footer-image" />
     </footer>
   </div>
 </template>
@@ -867,7 +867,7 @@ body {
 .hero-section {
   text-align: center;
   padding: 6rem 1rem;
-  background-image: url('https://raw.githubusercontent.com/sfaison3/project_genesis/refs/heads/main/frontend/public/images/study_songz_image.png?token=GHSAT0AAAAAADDQD6FL4PPP6DBVA7GUOEFO2A6AWYA');
+  background-image: url('https://asuforlife.asu.edu/api/img/study_songz_image.png');
   background-size: cover;
   background-position: center;
   color: white;
