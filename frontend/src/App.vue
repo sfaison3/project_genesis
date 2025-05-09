@@ -1208,17 +1208,17 @@ body {
 /* Footer styles */
 .app-footer {
   width: 100%;
-  padding: 2rem;
+  padding: 0;
   text-align: center;
   background-color: #f8f8f8;
   border-top: 1px solid #e0e0e0;
-  margin-top: 3rem;
+  margin-top: 0;
 }
 
 .footer-image {
-  max-width: 100%;
+  width: 100%;
   height: auto;
-  max-height: 120px;
+  display: block;
 }
 
 /* Container for the entire app */
