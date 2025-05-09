@@ -28,7 +28,7 @@ services:
     region: oregon
     plan: free
     branch: main
-    buildCommand: cd frontend && npm ci && npm run build
+    buildCommand: cd frontend && npm ci && npm run build && mkdir -p dist/images && cp public/images/* dist/images/
     staticPublishPath: ./frontend/dist
     headers:
       - path: /*
