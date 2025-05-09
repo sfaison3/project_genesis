@@ -2028,14 +2028,17 @@ async def get_music_task(task_id: str, test_mode: bool = False):
             parts = task_id.split("-")
             genre = parts[2] if len(parts) > 2 else "unknown"
             
-            # Mock response for testing
+            # Mock response for testing - use new Beatoven API response format
             mock_task_data = {
                 "status": "composed",
                 "meta": {
                     "project_id": f"mock-project-{int(time.time())}",
                     "track_id": f"mock-track-{int(time.time())}",
-                    "track_url": "https://filesamples.com/samples/audio/mp3/sample3.mp3",
-                    "stems_url": {
+                },
+                # Include composeResult for new Beatoven API format
+                "composeResult": {
+                    "url": "https://filesamples.com/samples/audio/mp3/sample3.mp3",
+                    "stems": {
                         "bass": "https://filesamples.com/samples/audio/mp3/sample1.mp3",
                         "chords": "https://filesamples.com/samples/audio/mp3/sample2.mp3",
                         "melody": "https://filesamples.com/samples/audio/mp3/sample3.mp3",
@@ -2044,11 +2047,13 @@ async def get_music_task(task_id: str, test_mode: bool = False):
                 }
             }
             
+            # Use track URL from composeResult in the new format
+            track_url = mock_task_data["composeResult"]["url"]
             response_data = {
                 "task_id": task_id,
                 "status": mock_task_data["status"],
-                "track_url": mock_task_data["meta"]["track_url"],
-                "stems": mock_task_data["meta"]["stems_url"],
+                "track_url": track_url,  # URL from composeResult
+                "stems": mock_task_data["composeResult"]["stems"],
                 "project_id": mock_task_data["meta"]["project_id"],
                 "track_id": mock_task_data["meta"]["track_id"]
             }
@@ -2134,6 +2139,12 @@ async def get_music_task(task_id: str, test_mode: bool = False):
                 print(f"Response Headers: {dict(response.headers)}")
                 print("Response Body:")
                 print(json.dumps(task_data, indent=2))
+
+                # Check for composeResult in the response (new API format)
+                if "composeResult" in task_data and "url" in task_data.get("composeResult", {}):
+                    url = task_data["composeResult"]["url"]
+                    print(f"FOUND COMPOSE RESULT URL: {url}")
+
                 print("===========================================\n")
                 
             except json.JSONDecodeError as json_error:
@@ -2160,12 +2171,27 @@ async def get_music_task(task_id: str, test_mode: bool = False):
                     "error": f"JSON decode error: {str(json_error)}"
                 }
             
+            # Check for track_url in multiple locations
+            track_url = None
+            if "track_url" in task_data:
+                track_url = task_data.get("track_url")
+            elif "meta" in task_data and "track_url" in task_data.get("meta", {}):
+                track_url = task_data.get("meta", {}).get("track_url")
+            elif "composeResult" in task_data and "url" in task_data.get("composeResult", {}):
+                track_url = task_data.get("composeResult", {}).get("url")
+                print(f"Using track URL from composeResult: {track_url}")
+
+            if not track_url:
+                # Fallback to a sample URL if no real URL is found
+                track_url = "https://filesamples.com/samples/audio/mp3/sample3.mp3"
+                print(f"No track URL found in response, using fallback: {track_url}")
+
             # Return a standardized response with all required fields
             response_data = {
                 "task_id": task_id,
                 "status": task_data.get("status", "unknown"),
-                "track_url": task_data.get("meta", {}).get("track_url", "https://filesamples.com/samples/audio/mp3/sample3.mp3"),
-                "stems": task_data.get("meta", {}).get("stems_url", {}),
+                "track_url": track_url,  # Use the found track URL
+                "stems": task_data.get("composeResult", {}).get("stems", task_data.get("meta", {}).get("stems_url", {})),
                 "project_id": task_data.get("meta", {}).get("project_id", f"project-{int(time.time())}"),
                 "track_id": task_data.get("meta", {}).get("track_id", f"track-{int(time.time())}")
             }
@@ -2513,12 +2539,21 @@ async def get_track_status(track_id: str):
         # Check if track is completed and has a URL
         is_completed = track_data.get("status") == "COMPLETED"
         preview_url = track_data.get("previewUrl")
-        track_url = track_data.get("track_url")  # Get track_url from response
+
+        # Check multiple possible locations for the track_url in track_data
+        track_url = None
+        # Direct field in track response
+        if "track_url" in track_data:
+            track_url = track_data.get("track_url")
+        # Field from composeResult property (new Beatoven API format)
+        elif "composeResult" in track_data and "url" in track_data.get("composeResult", {}):
+            track_url = track_data.get("composeResult", {}).get("url")
+            print(f"Found track URL in composeResult: {track_url}")
 
         # Use track_url if available, otherwise fall back to previewUrl
         final_url = track_url or preview_url
 
-        # Log both URLs for debugging
+        # Log all URLs for debugging
         print(f"Track URL: {track_url}")
         print(f"Preview URL: {preview_url}")
         print(f"Using final URL: {final_url}")
