@@ -17,6 +17,10 @@ WORKDIR /app
 # Copy built frontend assets
 COPY --from=frontend-build /app/frontend/dist /app/static
 
+# Ensure images directory exists and copy public images
+RUN mkdir -p /app/static/images
+COPY --from=frontend-build /app/frontend/public/images /app/static/images
+
 # Install backend dependencies
 COPY app/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
