@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-// Simple, minimal configuration to ensure build works
+// Custom config that should work with Render
 export default defineConfig({
   plugins: [vue()],
   server: {
@@ -13,5 +13,11 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
+  },
+  // Fix for build errors
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
   }
 })
