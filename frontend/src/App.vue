@@ -4,14 +4,14 @@
       <div class="logo-container">
         <!-- Use the ASU vertical logo from external URL -->
         <img src="https://careercatalyst.asu.edu/images/asu-vertical-logo.webp" alt="ASU Logo" class="asu-logo" />
-        <h1 class="site-title">Study Music</h1>
+        <h1 class="site-title">Study Songz</h1>
       </div>
       <button class="login-button">Login / Sign up</button>
     </header>
 
     <main class="main-content">
       <div class="hero-section">
-        <h1 class="hero-title">Study Music</h1>
+        <h1 class="hero-title">Study Songz</h1>
         <p class="hero-tagline">Tagline</p>
       </div>
 
@@ -19,12 +19,12 @@
         <h2 class="section-title">How it works</h2>
         <div class="steps-container">
           <div class="step">
-            <h3>Compose</h3>
-            <p>Boom! Your custom song is in the works. Want to tweak the lyrics or add a fun fact? Remix it 'til it's just right.</p>
-          </div>
-          <div class="step">
             <h3>Prelude</h3>
             <p>What are you learning? Drop your topic, pick a vibe (aka genre), and give us the scoop—we'll turn it into a jam.</p>
+          </div>
+          <div class="step">
+            <h3>Compose</h3>
+            <p>Boom! Your custom song is in the works. Want to tweak the lyrics or add a fun fact? Remix it 'til it's just right.</p>
           </div>
           <div class="step">
             <h3>Listen</h3>
@@ -238,7 +238,7 @@ export default {
       songTitle: 'Song Title',
       songDescription: 'The why, and how this will benefit you',
       audioUrl: '',
-      lyrics: 'Psst, I see dead people\n(Mustard on the beat, ho)\nAyy, Mustard on the beat, ho',
+      lyrics: 'This opportunity comes once in a lifetime\nYou better - lose yourself in the music, the moment\nYou own it, you better never let it go (go)\nYou only get one shot, do not miss your chance to blow\nThis opportunity comes once in a lifetime',
       isPlaying: false,
       audioDuration: 63, // in seconds
       currentAudioTime: 0, // in seconds
