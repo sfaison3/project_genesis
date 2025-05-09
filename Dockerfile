@@ -1,33 +1,38 @@
-# Multi-stage build for Genesis app
-# Stage 1: Build frontend
-FROM node:18-alpine AS frontend-build
-
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm install
-
-COPY frontend/ ./
-RUN npm run build
-
-# Stage 2: Build backend and combine with frontend
+# Simpler approach - single stage build
 FROM python:3.10-slim
 
 WORKDIR /app
 
-# Copy built frontend assets
-COPY --from=frontend-build /app/frontend/dist /app/static
+# Add Node.js repository and install Node.js
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    && curl -sL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Ensure images directory exists and copy public images
+# Verify Node.js and npm installation
+RUN node --version && npm --version
+
+# Copy frontend files
+COPY frontend/ /app/frontend/
+
+# Build the frontend
+WORKDIR /app/frontend
+RUN npm ci
+RUN npm run build || (echo "Frontend build failed" && exit 1)
+
+# Create static directories
+WORKDIR /app
+RUN mkdir -p /app/static
 RUN mkdir -p /app/static/images
-COPY --from=frontend-build /app/frontend/public/images /app/static/images
-
-# Copy images to both directories for flexibility
 RUN mkdir -p /app/static/assets/images
-COPY --from=frontend-build /app/frontend/public/images /app/static/assets/images
 
-# Copy any other public files
-RUN mkdir -p /app/static/assets
-COPY --from=frontend-build /app/frontend/public /app/static
+# Copy built assets and public files
+RUN cp -r /app/frontend/dist/* /app/static/
+RUN cp -r /app/frontend/public/images /app/static/images/
+RUN cp -r /app/frontend/public/images /app/static/assets/images/
 
 # Install backend dependencies
 COPY app/requirements.txt ./
@@ -61,8 +66,12 @@ def mount_static_files(app: FastAPI):
     # Explicitly mount the images directory
     app.mount("/images", StaticFiles(directory="static/images"), name="images")
 
-    # Also serve images from assets directory
-    app.mount("/assets/images", StaticFiles(directory="static/assets/images"), name="assets_images")
+    # Debug helper - list all directories and files in static folder
+    print("\n=== DEBUG: Listing files in static directory ===")
+    os.system("ls -la /app/static/")
+    os.system("ls -la /app/static/images/")
+    os.system("ls -la /app/static/assets/ || echo 'assets dir not found'")
+    print("=== End directory listing ===\n")
 
     @app.get("/")
     async def serve_frontend():

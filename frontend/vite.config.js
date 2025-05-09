@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { resolve } from 'path'
 
-// https://vitejs.dev/config/
+// Simple, minimal configuration to ensure build works
 export default defineConfig({
   plugins: [vue()],
   server: {
@@ -14,16 +13,5 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
-  },
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html')
-      }
-    }
-  },
-  publicDir: 'public'
+  }
 })
