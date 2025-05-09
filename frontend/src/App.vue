@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="app-container">
     <header class="header">
       <div class="logo-container">
         <!-- Use the ASU vertical logo from external URL -->
@@ -12,7 +12,7 @@
     <main class="main-content">
       <div class="hero-section">
         <h1 class="hero-title">Study Songz</h1>
-        <p class="hero-tagline">Tagline</p>
+        <p class="hero-tagline">Your brain's new favorite playlist</p>
       </div>
 
       <div class="how-it-works">
@@ -199,6 +199,9 @@
         </div>
       </div>
     </main>
+    <footer class="app-footer">
+      <img src="/images/app_footer.png" alt="App Footer" class="footer-image" />
+    </footer>
   </div>
 </template>
 
@@ -831,7 +834,30 @@ body {
 /* Hero section */
 .hero-section {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 6rem 1rem;
+  background-image: url('/images/study_songz_image.png');
+  background-size: cover;
+  background-position: center;
+  color: white;
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+.hero-title, .hero-tagline {
+  position: relative;
+  z-index: 2;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
 .hero-title {
@@ -1145,6 +1171,34 @@ body {
   height: 100%;
   background-color: #8C1D40; /* ASU maroon */
   border-radius: 2px;
+}
+
+/* Footer styles */
+.app-footer {
+  width: 100%;
+  padding: 2rem;
+  text-align: center;
+  background-color: #f8f8f8;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 3rem;
+}
+
+.footer-image {
+  max-width: 100%;
+  height: auto;
+  max-height: 120px;
+}
+
+/* Container for the entire app */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Make main content take up available space */
+.main-content {
+  flex: 1;
 }
 
 /* Media queries */
