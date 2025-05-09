@@ -891,33 +891,65 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
             f"The principles of {topic} apply to daily life"
         ]
     
-    # Generate genre-specific lyrics with educational facts
+    # Get a short, catchy form of the topic (2-3 syllables max for hooks)
+    short_topic = core_topic.split()[-1] if len(core_topic.split()) > 1 else core_topic
+    if len(short_topic) > 10:  # If still too long, use just the first word
+        short_topic = core_topic.split()[0]
+    
+    # Create catchy hooks and repeated elements based on genre
+    
+    # Generate genre-specific lyrics with educational facts and strong hooks
     if genre.lower() in ["hip_hop", "hip-hop", "rap"]:
+        # Create a catchy hook phrase
+        hook_phrase = f"Learn it ({short_topic}), know it ({short_topic}), own it!"
+        
         return f"""
+[Intro]
+Yeah... Educational beats droppin'
+{hook_phrase}
+Let's get this knowledge flowin'!
+
 [Verse 1]
-Listen up, class in session about {topic}
-Time to break it down with facts that are impressive
-{facts[0]}
-{facts[1]}
+Listen up, class in session about {topic} (Yo!)
+Time to break it down with facts that are impressive (What!)
+{facts[0]} (That's right!)
+{facts[1]} (Remember that!)
 That's just the beginning of what you're learning today
 Knowledge is power, so let me light the way
 
+[Hook]
+{hook_phrase}
+{hook_phrase}
+
 [Chorus]
-{topic.capitalize()} knowledge, expanding your mind
-{facts[2]}
-{topic.capitalize()} wisdom, it's your time to shine
-{facts[3]}
+{topic.capitalize()} knowledge, expanding your mind (Expand it!)
+{facts[2]} (Learn it!)
+{topic.capitalize()} wisdom, it's your time to shine (Shine on!)
+{facts[3]} (Know that!)
+{hook_phrase}
 
 [Verse 2]
-Back to the lesson, there's more you should know
-{facts[4]}
-{facts[5]}
+Back to the lesson, there's more you should know (Listen up!)
+{facts[4]} (Facts only!)
+{facts[5]} (That's science!)
 Now you've got the facts to help your knowledge grow
 Remember these points when it's time for the test
 Your education journey is no time to rest
+
+[Outro]
+{hook_phrase}
+{hook_phrase}
+Now you know about {topic}! (Drop the mic)
 """
     elif genre.lower() in ["country", "folk"]:
+        # Create a melodic refrain based on topic
+        refrain = f"Oh, the wisdom of {short_topic}, stays with you forever more"
+        
         return f"""
+[Intro]
+(Gentle guitar strumming)
+{refrain}...
+
 [Verse 1]
 Sitting here learning 'bout {topic}
 Like reading chapters of nature's own book
@@ -926,11 +958,18 @@ Like reading chapters of nature's own book
 These lessons will stay with you along life's road
 Knowledge planted like seeds that have been sowed
 
+[Pre-Chorus]
+And we'll remember...
+
 [Chorus]
-Oh, {topic}
+Oh, {topic}, like the sunrise over the hill
 {facts[2]}
-Oh, {topic}
+Sweet {topic}, knowledge that gives me a thrill
 {facts[3]}
+{refrain}
+
+[Musical Bridge]
+(Fiddle solo)
 
 [Verse 2]
 The journey of learning continues on
@@ -939,9 +978,125 @@ The journey of learning continues on
 The wisdom you've gained will carry on
 When you understand, the picture gets clear
 The knowledge of {topic} brings the answers near
+
+[Chorus]
+Oh, {topic}, like the sunrise over the hill
+{facts[2]}
+Sweet {topic}, knowledge that gives me a thrill
+{facts[3]}
+{refrain}
+
+[Outro]
+{refrain}
+(Fade out with gentle humming)
+"""
+    elif genre.lower() in ["rock", "heavy-metal", "punk", "grunge"]:
+        # Create a powerful chant/anthem based on topic
+        power_chant = f"{short_topic.upper()}! {short_topic.upper()}! KNOWLEDGE IS POWER!"
+        
+        return f"""
+[Intro]
+(Heavy guitar riff)
+{power_chant}
+
+[Verse 1]
+UNLEASHING THE POWER OF {topic.upper()}
+BLASTING YOUR MIND WITH FACTS TO REMEMBER
+{facts[0]}
+{facts[1]}
+KNOWLEDGE EXPLOSION, INSIDE YOUR BRAIN
+MENTAL FOUNDATIONS THAT WILL REMAIN
+
+[Pre-Chorus]
+Get ready to rock with...
+
+[Chorus]
+{topic.upper()}! FEEL THE POWER!
+{facts[2]}
+{topic.upper()}! EVERY HOUR!
+{facts[3]}
+{power_chant}
+
+[Guitar Solo]
+
+[Verse 2]
+CRANKING UP THE VOLUME ON EDUCATION
+{facts[4]}
+{facts[5]}
+AMPLIFYING WISDOM ACROSS THE NATION
+YOUR MIND IS THE STAGE FOR THIS KNOWLEDGE SHOW
+THE FACTS AND THE DATA YOU NEED TO KNOW
+
+[Chorus]
+{topic.upper()}! FEEL THE POWER!
+{facts[2]}
+{topic.upper()}! EVERY HOUR!
+{facts[3]}
+{power_chant}
+
+[Outro]
+(Final power chord)
+KNOWLEDGE ROCKS!
+"""
+    elif genre.lower() in ["electronic", "eletronic", "disco", "edm"]:
+        # Create a repetitive, danceable hook
+        beat_hook = f"Learn-learn-learn the {short_topic} (Woo!)"
+        
+        return f"""
+[Intro]
+(Electronic beats building)
+{beat_hook} [x4]
+
+[Verse 1]
+Digital knowledge flowing through your mind
+About {topic}, let the learning unwind
+{facts[0]}
+{facts[1]}
+Information surging at the speed of light
+Educational facts that make your future bright
+
+[Build-up]
+Know it, know it, know it, know it...
+(Beat intensifies)
+
+[Drop + Chorus]
+DROP THE FACTS! {topic.upper()}!
+{facts[2]}
+BOOST YOUR MIND! {topic.upper()}!
+{facts[3]}
+{beat_hook} [x4]
+
+[Bridge]
+(Pulsing synth)
+Processing... knowledge... downloading...
+
+[Verse 2]
+System upgrade for your brain is here
+{facts[4]}
+{facts[5]}
+Educational data becoming clear
+Synchronize your neurons with these crucial facts
+Intelligence increasing with each learning track
+
+[Final Drop + Chorus]
+DROP THE FACTS! {topic.upper()}!
+{facts[2]}
+BOOST YOUR MIND! {topic.upper()}!
+{facts[3]}
+{beat_hook} [x8]
+
+[Outro]
+Knowledge downloaded. Learning complete.
 """
     else:
+        # General pop structure with catchy elements
+        catchy_hook = f"Learn about {short_topic}, yeah, {short_topic}!"
+        
         return f"""
+[Intro]
+{catchy_hook}
+(Let's go!)
+
 [Verse 1]
 Today we're exploring {topic}
 Essential concepts you need to know
@@ -950,11 +1105,20 @@ Essential concepts you need to know
 {facts[2]}
 Building blocks of knowledge help us grow
 
+[Pre-Chorus]
+And now we know, and now we see...
+
 [Chorus]
-{topic.capitalize()}, {topic.capitalize()}
+{catchy_hook}
 {facts[3]}
-{topic.capitalize()}, {topic.capitalize()}
+{catchy_hook}
 {facts[4]}
+Knowledge is power, and learning is key
+Understanding {topic} sets your mind free!
+
+[Bridge]
+(Instrumental break with melody)
+Learn it, live it, know it, love it...
 
 [Verse 2]
 Let's continue learning about {topic}
@@ -962,6 +1126,17 @@ Diving deeper into what makes it work
 {facts[5]}
 Understanding brings clarity and light
 The knowledge you gain will serve you right
+
+[Chorus]
+{catchy_hook}
+{facts[3]}
+{catchy_hook}
+{facts[4]}
+Knowledge is power, and learning is key
+Understanding {topic} sets your mind free!
+
+[Outro]
+{catchy_hook} [Fade out]
 """
 
 def map_to_beatoven_genre(genre):
