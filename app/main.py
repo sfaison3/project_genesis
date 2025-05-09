@@ -253,20 +253,18 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     try:
         print(f"Creating track with Beatoven.ai: {genre} about {topic}")
         
-        # Build the request payload for Beatoven API
+        # Build the request payload for Beatoven API based on their API format
         payload = {
-            "name": track_name,
-            "duration": duration,
-            "genre": beatoven_genre,
-            "customPrompt": music_prompt
+            "prompt": {
+                "text": music_prompt
+            }
         }
         
         # Log the final payload we're sending to Beatoven.ai (for debugging)
         print(f"\n===== BEATOVEN.AI PAYLOAD =====")
-        print(f"Track name: {payload['name']}")
-        print(f"Duration: {payload['duration']} seconds")
-        print(f"Genre: {payload['genre']}")
-        print(f"Custom prompt: {payload['customPrompt']}")
+        print(f"Prompt text: {payload['prompt']['text']}")
+        print(f"Topic: {topic}")
+        print(f"Genre (informational only): {beatoven_genre}")
         print(f"================================\n")
         
         # For test mode, use a mock response instead of making an actual API call
@@ -313,15 +311,15 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 # Make the actual API request with explicit timeout
                 # First, print the full request details for analysis
                 print("\n===== BEATOVEN.AI API REQUEST =====")
-                print(f"Endpoint: https://api.beatoven.ai/v1/tracks")
+                print(f"Endpoint: https://api.beatoven.ai/v1/tracks/compose")
                 print(f"Headers: Authorization: Bearer {BEATOVEN_API_KEY[:5]}... (truncated for security)")
                 print(f"Request Body (JSON):")
                 print(json.dumps(payload, indent=2))
                 print("==================================\n")
                 
-                # Now make the actual API request
+                # Now make the actual API request to the compose endpoint
                 response = requests.post(
-                    "https://api.beatoven.ai/v1/tracks",
+                    "https://api.beatoven.ai/v1/tracks/compose",
                     headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}", "Content-Type": "application/json"},
                     json=payload,
                     timeout=10  # Add explicit timeout to avoid hanging request
