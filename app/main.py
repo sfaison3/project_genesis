@@ -18,6 +18,15 @@ load_dotenv()
 
 app = FastAPI(title="Genesis Music Learning API", description="Generate custom songs to enhance learning")
 
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins in development
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
+
 # Mount static files directory for testing
 import os
 static_dir = os.path.join(os.path.dirname(__file__), "static")
