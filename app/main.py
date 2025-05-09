@@ -1300,116 +1300,100 @@ def generate_lyrics_for_topic(topic: str, genre: str) -> str:
         hook_phrase = f"Learn it ({short_topic}), know it ({short_topic}), own it!"
         
         return f"""
-[Educational Facts about {topic} - Hip Hop Style]
+Yeah... listen up about {topic}!
 
-[Verse 1]
-{facts[0]} (Remember this!)
-{facts[1]} (That's key knowledge!)
-{facts[2]} (Critical fact!)
+{facts[0]}
+{facts[1]}
+{facts[2]}
 
-[Hook]
 {hook_phrase}
 
-[Verse 2]
-{facts[3]} (This is important!)
-{facts[4]} (You need to know this!)
-{facts[5]} (Essential information!)
+{facts[3]}
+{facts[4]}
+{facts[5]}
 
-[Final Hook]
 {hook_phrase}
-Mastering {topic} knowledge!
+Master {topic} now - knowledge is power!
 """
     elif normalized_genre in ["country", "folk"]:
         # Create a melodic refrain based on topic
         refrain = f"Oh, the wisdom of {short_topic}, stays with you forever more"
         
         return f"""
-[Educational Facts about {topic} - Country Style]
+Wandering down the path of learning 'bout {topic}...
 
-[Verse 1]
 {facts[0]}
 {facts[1]}
 {facts[2]}
 
-[Refrain]
 {refrain}
 
-[Verse 2]
 {facts[3]}
 {facts[4]}
 {facts[5]}
 
-[Closing]
-These facts about {topic} will help you learn
-Remember them well and watch your knowledge grow
+These truths about {topic} light up your mind
+Like stars in the sky guiding you home
 """
     elif normalized_genre in ["rock", "heavy_metal", "punk", "grunge"]:
         # Create a powerful chant/anthem based on topic
         power_chant = f"{short_topic.upper()}! {short_topic.upper()}! KNOWLEDGE IS POWER!"
         
         return f"""
-[Educational Facts about {topic} - Rock Style]
+Are you ready to rock with the truth about {topic}?
 
-[KEY FACTS]
-1. {facts[0]}
-2. {facts[1]}
-3. {facts[2]}
+{facts[0]}
+{facts[1]}
+{facts[2]}
 
-[POWER SECTION]
 {power_chant}
 
-[MORE ESSENTIAL KNOWLEDGE]
-4. {facts[3]}
-5. {facts[4]}
-6. {facts[5]}
+{facts[3]}
+{facts[4]}
+{facts[5]}
 
-[CONCLUSION]
-Master these facts about {topic}!
-KNOWLEDGE IS POWER!
+These are the facts that you need to know
+About {topic} - let your wisdom grow!
 """
     elif normalized_genre in ["electronic", "eletronic", "disco", "edm"]:
         # Create a repetitive, danceable hook
         beat_hook = f"Learn-learn-learn the {short_topic} (Woo!)"
         
         return f"""
-[Educational Facts about {topic} - Electronic Style]
+Pulse with the rhythm of {topic} knowledge...
 
-[DATA SECTION 1]
-* {facts[0]}
-* {facts[1]}
-* {facts[2]}
+{facts[0]}
+{facts[1]}
+{facts[2]}
 
-[KNOWLEDGE HOOK]
 {beat_hook}
 
-[DATA SECTION 2]
-* {facts[3]}
-* {facts[4]}
-* {facts[5]}
+{facts[3]}
+{facts[4]}
+{facts[5]}
 
-[LEARNING COMPLETE]
-Essential knowledge about {topic} downloaded to memory.
+Knowledge of {topic} flows through your mind
+Wisdom illuminating your thoughts - forever!
 """
     else:
         # General default format for any other genre
         return f"""
-[Educational Facts about {topic}]
+Journey with me through the world of {topic}...
 
-IMPORTANT FACTS TO REMEMBER:
+{facts[0]}
 
-1. {facts[0]}
+{facts[1]}
 
-2. {facts[1]}
+{facts[2]}
 
-3. {facts[2]}
+{facts[3]}
 
-4. {facts[3]}
+{facts[4]}
 
-5. {facts[4]}
+{facts[5]}
 
-6. {facts[5]}
-
-Mastering these key points will help you understand {topic} completely.
+With these truths about {topic} now clear in your mind,
+You'll understand the world in a whole new light.
 """
 
 def map_to_beatoven_genre(genre):
