@@ -232,7 +232,15 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         else:
             try:
                 # Make the actual API request with explicit timeout
-                # First, create a track composition request
+                # First, print the full request details for analysis
+                print("\n===== BEATOVEN.AI API REQUEST =====")
+                print(f"Endpoint: https://api.beatoven.ai/v1/tracks")
+                print(f"Headers: Authorization: Bearer {BEATOVEN_API_KEY[:5]}... (truncated for security)")
+                print(f"Request Body (JSON):")
+                print(json.dumps(payload, indent=2))
+                print("==================================\n")
+                
+                # Now make the actual API request
                 response = requests.post(
                     "https://api.beatoven.ai/v1/tracks",
                     headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}", "Content-Type": "application/json"},
@@ -243,7 +251,20 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 # If we get a successful response, we need to extract data correctly
                 if response.status_code == 200 or response.status_code == 201:
                     # Dump the raw response text for maximum debugging info
-                    print("RAW RESPONSE TEXT:", response.text)
+                    print("\n===== BEATOVEN.AI API RESPONSE =====")
+                    print(f"Status Code: {response.status_code}")
+                    print(f"Response Headers: {dict(response.headers)}")
+                    print("Response Body:")
+                    
+                    # Try to pretty-print if it's JSON
+                    try:
+                        json_response = json.loads(response.text)
+                        print(json.dumps(json_response, indent=2))
+                    except json.JSONDecodeError:
+                        # If not valid JSON, print as-is
+                        print(response.text)
+                    
+                    print("====================================\n")
                     
                     # Check if the response is empty or whitespace
                     if not response.text or response.text.strip() == "":
@@ -1240,6 +1261,12 @@ async def get_music_task(task_id: str, test_mode: bool = False):
                 )
             else:
                 # Standard task ID
+                # Print task request details
+                print(f"\n===== BEATOVEN.AI TASK STATUS REQUEST =====")
+                print(f"Endpoint: https://api.beatoven.ai/v1/tasks/{task_id}")
+                print(f"Headers: Authorization: Bearer {BEATOVEN_API_KEY[:5]}... (truncated for security)")
+                print("==========================================\n")
+                
                 response = requests.get(
                     f"https://api.beatoven.ai/v1/tasks/{task_id}",
                     headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"},
@@ -1287,7 +1314,12 @@ async def get_music_task(task_id: str, test_mode: bool = False):
                     raise json.JSONDecodeError("Empty response", "", 0)
                 
                 task_data = json.loads(response_text)
-                print(f"Task data received: {json.dumps(task_data, indent=2)[:500]}...")
+                print("\n===== BEATOVEN.AI TASK STATUS RESPONSE =====")
+                print(f"Status Code: {response.status_code}")
+                print(f"Response Headers: {dict(response.headers)}")
+                print("Response Body:")
+                print(json.dumps(task_data, indent=2))
+                print("===========================================\n")
                 
             except json.JSONDecodeError as json_error:
                 print(f"JSON decode error: {str(json_error)}")
@@ -1584,6 +1616,12 @@ async def get_track_status(track_id: str):
             }
         else:
             try:
+                # Print track status request details
+                print(f"\n===== BEATOVEN.AI TRACK STATUS REQUEST =====")
+                print(f"Endpoint: https://api.beatoven.ai/v1/tracks/{track_id}")
+                print(f"Headers: Authorization: Bearer {BEATOVEN_API_KEY[:5]}... (truncated for security)")
+                print("===========================================\n")
+                
                 # Call Beatoven API to get track status with timeout
                 response = requests.get(
                     f"https://api.beatoven.ai/v1/tracks/{track_id}",
@@ -1625,7 +1663,20 @@ async def get_track_status(track_id: str):
                     detail=f"Failed to get track status: {response.text}"
                 )
             
-            track_data = response.json()
+            # Print track response details
+            print("\n===== BEATOVEN.AI TRACK STATUS RESPONSE =====")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response Headers: {dict(response.headers)}")
+            print("Response Body:")
+            
+            # Try to pretty-print if it's valid JSON
+            try:
+                track_data = response.json()
+                print(json.dumps(track_data, indent=2))
+            except json.JSONDecodeError:
+                print(f"Invalid JSON: {response.text}")
+                raise
+            print("============================================\n")
         
         # Extract track name and genre for generating lyrics
         track_name = track_data.get("name", "")
