@@ -2,8 +2,8 @@
   <div>
     <header class="header">
       <div class="logo-container">
-        <!-- Use the ASU logo from imported assets -->
-        <img :src="asuLogo" alt="ASU Logo" class="asu-logo" />
+        <!-- Use the ASU logo directly from assets directory -->
+        <img src="/assets/asu-logo.png" alt="ASU Logo" class="asu-logo" />
         <h1 class="site-title">Study Music</h1>
       </div>
       <button class="login-button">Login / Sign up</button>
