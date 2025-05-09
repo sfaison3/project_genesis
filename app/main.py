@@ -225,27 +225,52 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                     timeout=10  # Add explicit timeout to avoid hanging request
                 )
                 
-                # If we get a successful response, we need to extract the task_id from the response
+                # If we get a successful response, we need to extract data correctly
                 if response.status_code == 200 or response.status_code == 201:
-                    data = response.json()
-                    # Print the full response for debugging
-                    print("FULL BEATOVEN API RESPONSE:", json.dumps(data, indent=2))
+                    # Dump the raw response text for maximum debugging info
+                    print("RAW RESPONSE TEXT:", response.text)
                     
-                    # The initial track creation should also provide a task_id
-                    task_id = data.get("task_id")  # Using task_id with underscore per API docs
-                    
-                    # If task_id not found in the response, look for other possible variations
-                    if not task_id:
-                        # Check alternative field names
-                        if "taskId" in data:
-                            task_id = data["taskId"]
-                            print("Found task ID in 'taskId' field")
-                        elif "id" in data and "_" in data["id"]:
-                            # The task_id might be inside the id field (format: UUID_number)
-                            task_id = data["id"]
-                            print(f"Using id field as task_id: {task_id}")
+                    try:
+                        data = response.json()
+                        # Print the full response for debugging
+                        print("FULL BEATOVEN API RESPONSE:", json.dumps(data, indent=2))
+                        
+                        # The initial track creation should also provide a task_id
+                        print("BEFORE EXTRACTION - task_id:", task_id)
+                        task_id_from_response = data.get("task_id")  # Using task_id with underscore per API docs
+                        print("FOUND IN RESPONSE 'task_id':", task_id_from_response)
+                        
+                        # If task_id not found in the response, look for other possible variations
+                        if not task_id_from_response:
+                            # Check alternative field names, log each attempt
+                            if "taskId" in data:
+                                task_id_from_response = data["taskId"]
+                                print("Found task ID in 'taskId' field:", task_id_from_response)
+                            elif "compositionTaskId" in data:
+                                task_id_from_response = data["compositionTaskId"]
+                                print("Found task ID in 'compositionTaskId' field:", task_id_from_response)
+                            elif "id" in data and isinstance(data["id"], str) and "_" in data["id"]:
+                                # The task_id might be inside the id field (format: UUID_number)
+                                task_id_from_response = data["id"]
+                                print(f"Using id field as task_id: {task_id_from_response}")
+                            else:
+                                print("WARNING: Could not find task_id in any expected field.")
+                                print("Available fields:", list(data.keys()))
+                                # Print the whole response for deeper analysis
+                                print("DETAILED DATA STRUCTURE:")
+                                for key, value in data.items():
+                                    print(f"  {key}: {type(value)} = {value}")
+                        
+                        # Only update task_id if we found a value
+                        if task_id_from_response:
+                            task_id = task_id_from_response
+                            print("UPDATED task_id:", task_id)
                         else:
-                            print("WARNING: Could not find task_id in any expected field. Available fields:", list(data.keys()))
+                            print("NO task_id found in response, keeping original:", task_id)
+                            
+                    except Exception as json_error:
+                        print(f"ERROR parsing response as JSON: {str(json_error)}")
+                        print("Response might not be valid JSON. Raw response:", response.text[:500])
             except requests.exceptions.ConnectionError as conn_error:
                 # DNS resolution or connection issue - use fallback mode
                 print(f"Connection error to Beatoven API: {str(conn_error)}")
@@ -302,11 +327,23 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         print(f"Task ID: {task_id}")
         print(f"Track created with ID: {track_id}")
         
-        # If we still don't have a task_id but have a track_id, we might need to append _1 to make it a task_id
+        # CRITICAL: If we still don't have a task_id but have a track_id, generate one from track_id
         # (Based on the example: "track_id": "80555995-62c1-4b73-ae83-f10e8aba2a7a", "task_id": "80555995-62c1-4b73-ae83-f10e8aba2a7a_1")
         if not task_id and track_id:
-            task_id = f"{track_id}_1"
-            print(f"Generated task_id from track_id: {task_id}")
+            # First, check if the track_id already includes a version suffix
+            if "_" in track_id:
+                task_id = track_id
+                print(f"Using track_id as task_id since it already contains '_': {task_id}")
+            else:
+                # Otherwise, append "_1" to create a task_id
+                task_id = f"{track_id}_1"
+                print(f"Generated task_id from track_id: {task_id}")
+        
+        # IMPORTANT: Final check - if we somehow still don't have a task_id, generate a random one
+        if not task_id:
+            import uuid
+            task_id = f"{uuid.uuid4()}_1"
+            print(f"WARNING: Generated random task_id as last resort: {task_id}")
         
         # Check if we have a preview URL immediately (unlikely but possible)
         preview_url = data.get("previewUrl")
@@ -390,6 +427,18 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
     # Extract the version number and beatoven status from the response
     version = data.get("version")
     beatoven_status = data.get("status")
+    
+    # VERIFY THE TASK_ID BEFORE CREATING RESULT
+    print("PRE-FINAL CHECK - task_id:", task_id, "track_id:", track_id)
+    
+    # Last resort - if we still don't have a task_id but somehow got this far
+    if not task_id and track_id:
+        task_id = f"{track_id}_1"
+        print("LAST CHANCE FIX: Generated task_id from track_id:", task_id)
+    elif not task_id:
+        import uuid
+        task_id = f"{uuid.uuid4()}_1"
+        print("EMERGENCY FIX: Generated random task_id:", task_id)
     
     # Make sure we return all data, with meaningful values
     result = {
@@ -658,18 +707,36 @@ async def generate_music_endpoint(request: MusicGenerationRequest):
         is_completed = result["preview_url"].endswith(".mp3")
         status = "completed" if is_completed else "processing"
         
-        return {
+        # Check if the task_id is present in the result
+        if result.get("task_id") is None:
+            print("WARNING: task_id is missing in the result, generating one as last resort")
+            # Generate a task_id if missing
+            if result.get("track_id"):
+                result["task_id"] = f"{result['track_id']}_1"
+                print(f"Generated task_id from track_id in endpoint: {result['task_id']}")
+            else:
+                import uuid
+                result["task_id"] = f"{uuid.uuid4()}_1"
+                print(f"Generated random task_id in endpoint: {result['task_id']}")
+        
+        response_data = {
             "output_url": result["preview_url"],
             "genre": request.genre,
             "prompt_used": result["prompt_used"],
             "track_id": result.get("track_id"),
-            "task_id": result.get("task_id"),
+            "task_id": result.get("task_id"),  # This MUST be present now
             "status": status,
             "version": result.get("version"),
             "beatoven_status": result.get("beatoven_status"),
             "title": result.get("title", f"Learning about {request.topic}"),
             "lyrics": result.get("lyrics", "Lyrics are being generated...")
         }
+        
+        # Final verification - log what we're returning to the client
+        print("FINAL RESPONSE DATA (task_id):", response_data.get("task_id"))
+        print("FINAL RESPONSE DATA (all keys):", list(response_data.keys()))
+        
+        return response_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
