@@ -2,7 +2,7 @@
   <div>
     <header class="header">
       <div class="logo-container">
-        <img src="./assets/logos/asu-logo.png" alt="ASU Logo" class="asu-logo" />
+        <img :src="asuLogoSrc" alt="ASU Logo" class="asu-logo" />
         <h1 class="site-title">Study Music</h1>
       </div>
       <button class="login-button">Login / Sign up</button>
@@ -205,6 +205,7 @@
 import FileUpload from './components/FileUpload.vue'
 import config from './config'
 import albumArtImage from './assets/album-art.svg'
+import asuLogo from './assets/logos/asu-logo.png'
 
 // Import player control icons
 import shuffleIcon from './assets/icons/shuffle.svg'
@@ -242,6 +243,7 @@ export default {
       currentAudioTime: 0, // in seconds
       isLooping: false,
       albumArt: albumArtImage,
+      importedAsuLogo: asuLogo, // Keep reference to imported logo
       // Player control icons
       icons: {
         shuffle: shuffleIcon,
@@ -297,6 +299,21 @@ export default {
     progressPercentage() {
       if (this.audioDuration === 0) return 0;
       return (this.currentAudioTime / this.audioDuration) * 100;
+    },
+    
+    asuLogoSrc() {
+      // For production (deployed on Render), use a direct URL to a public ASU logo
+      // For local development, use the imported asset
+      const isProduction = window.location.hostname.includes('render.com') || 
+                         window.location.hostname.includes('onrender.com');
+      
+      if (isProduction) {
+        // Use a direct URL to ASU's logo that's publicly accessible
+        return 'https://www.asu.edu/sites/default/files/arizona-state-university-logo.png';
+      } else {
+        // For local development, use the imported asset
+        return asuLogo;
+      }
     }
   },
   mounted() {
