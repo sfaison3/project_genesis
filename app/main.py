@@ -2191,10 +2191,16 @@ def map_to_beatoven_genre(genre):
     return result
 
 # Routes
-@app.get("/api/health")
+@app.get("/health", response_model=dict)
+@app.get("/api/health", response_model=dict)
 async def health_check():
     """Health check endpoint for Render"""
-    return {"status": "ok"}
+    # Use explicit Response to ensure proper JSON formatting
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        content={"status": "ok", "service": "Genesis Music API", "version": "1.0.0"},
+        status_code=200
+    )
 
 @app.get("/api/music/tasks/{task_id}")
 async def get_music_task(task_id: str, test_mode: bool = False):

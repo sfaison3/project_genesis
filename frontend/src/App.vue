@@ -496,20 +496,53 @@ export default {
     
     async checkApiHealth() {
       try {
-        const endpoint = `${this.apiUrl}/health`.replace('//', '/')
-        console.log('Checking API health at:', endpoint)
-        
-        const response = await fetch(endpoint)
-        if (!response.ok) {
-          throw new Error('API health check failed')
+        // Ensure correct URL formatting by using URL constructor
+        let baseUrl = this.apiUrl;
+        if (!baseUrl.startsWith('http')) {
+          // If it's a relative URL, use the current origin
+          baseUrl = window.location.origin + (baseUrl.startsWith('/') ? baseUrl : '/' + baseUrl);
         }
-        
-        const data = await response.json()
-        this.apiStatus = data.status
-        console.log('API Status:', this.apiStatus)
+
+        const endpoint = new URL('/health', baseUrl).toString();
+        console.log('Checking API health at:', endpoint);
+
+        try {
+          const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            // Set shorter timeout for health checks
+            signal: AbortSignal.timeout(5000)
+          });
+
+          if (!response.ok) {
+            throw new Error(`API health check failed with status: ${response.status}`);
+          }
+
+          try {
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+              console.warn('Health endpoint returned non-JSON response:', contentType);
+              this.apiStatus = 'warning';
+              return;
+            }
+
+            const data = await response.json();
+            this.apiStatus = data.status || 'unknown';
+            console.log('API Status:', this.apiStatus);
+          } catch (parseError) {
+            console.error('Failed to parse health check JSON:', parseError);
+            this.apiStatus = 'error';
+          }
+        } catch (fetchError) {
+          console.error('Health check fetch error:', fetchError);
+          this.apiStatus = 'error';
+        }
       } catch (error) {
-        console.error('Health check error:', error)
-        this.apiStatus = 'error'
+        console.error('Overall health check error:', error);
+        this.apiStatus = 'error';
       }
     },
     
