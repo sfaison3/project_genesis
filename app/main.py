@@ -1,9 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Dict, Any
 import uvicorn
 import os
 import requests
@@ -11,12 +11,206 @@ import random
 import time
 import json
 import re
+import asyncio
+from starlette.websockets import WebSocketState
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI(title="Genesis Music Learning API", description="Generate custom songs to enhance learning")
+
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket, client_id: str):
+        await websocket.accept()
+        self.active_connections[client_id] = websocket
+        print(f"WebSocket client connected: {client_id}")
+
+    def disconnect(self, client_id: str):
+        if client_id in self.active_connections:
+            del self.active_connections[client_id]
+            print(f"WebSocket client disconnected: {client_id}")
+
+    async def send_message(self, client_id: str, message: Dict[str, Any]):
+        if client_id in self.active_connections:
+            connection = self.active_connections[client_id]
+            if connection.client_state != WebSocketState.DISCONNECTED:
+                try:
+                    await connection.send_json(message)
+                    return True
+                except RuntimeError as e:
+                    print(f"Error sending message to client {client_id}: {str(e)}")
+                    self.disconnect(client_id)
+        return False
+
+    async def broadcast(self, message: Dict[str, Any]):
+        disconnected_clients = []
+        for client_id, connection in self.active_connections.items():
+            if connection.client_state != WebSocketState.DISCONNECTED:
+                try:
+                    await connection.send_json(message)
+                except RuntimeError as e:
+                    print(f"Error broadcasting to client {client_id}: {str(e)}")
+                    disconnected_clients.append(client_id)
+
+        # Clean up disconnected clients
+        for client_id in disconnected_clients:
+            self.disconnect(client_id)
+
+manager = ConnectionManager()
+
+# Dictionary to track ongoing polling tasks
+polling_tasks = {}
+
+# Async function to poll for track completion
+async def poll_for_track_completion(task_id: str, track_id: str, client_id: str, genre: str, topic: str):
+    """
+    Asynchronously poll for track completion and notify the client via WebSocket.
+    """
+    if not BEATOVEN_API_KEY:
+        print(f"Error: Beatoven API key not configured for polling task: {task_id}")
+        return
+
+    print(f"Starting polling for track: {track_id}, task: {task_id}, client: {client_id}")
+
+    max_attempts = 60  # More attempts than before, as we can afford to wait longer
+    attempt = 0
+    wait_time = 3  # Initial wait time in seconds
+    track_url = None
+
+    # Continue polling until we have a valid track_url or reach max attempts
+    while attempt < max_attempts and (not track_url or not track_url.endswith('.mp3')):
+        print(f"Polling for track completion, attempt {attempt+1}/{max_attempts}")
+
+        try:
+            # Check if task_id contains an underscore (format UUID_number)
+            endpoint = f"https://api.beatoven.ai/v1/tasks/{task_id}"
+
+            # Check task status
+            response = await asyncio.to_thread(
+                requests.get,
+                endpoint,
+                headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"},
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                try:
+                    task_data = response.json()
+                    status = task_data.get("status")
+
+                    # Try to find track_url in different locations based on API response format
+                    track_url = None
+                    if "track_url" in task_data:
+                        track_url = task_data.get("track_url")
+                    elif "meta" in task_data and "track_url" in task_data.get("meta", {}):
+                        track_url = task_data.get("meta", {}).get("track_url")
+                    elif "composeResult" in task_data and "url" in task_data.get("composeResult", {}):
+                        track_url = task_data.get("composeResult", {}).get("url")
+
+                    print(f"Task status: {status}, Track URL: {track_url}")
+
+                    # Check if track is ready or failed
+                    if (status == "composed" or status == "COMPLETED") and track_url and track_url.endswith('.mp3'):
+                        print(f"Track is ready! URL: {track_url}")
+
+                        # Notify client via WebSocket
+                        await manager.send_message(client_id, {
+                            "type": "track_ready",
+                            "task_id": task_id,
+                            "track_id": track_id,
+                            "track_url": track_url,
+                            "status": "completed",
+                            "genre": genre,
+                            "topic": topic
+                        })
+
+                        # Successfully found the track, exit polling
+                        break
+
+                    elif status in ["failed", "error", "FAILED", "ERROR"]:
+                        print(f"Track generation failed with status: {status}")
+
+                        # Notify client of failure
+                        await manager.send_message(client_id, {
+                            "type": "track_failed",
+                            "task_id": task_id,
+                            "track_id": track_id,
+                            "status": "failed",
+                            "error": f"Beatoven API returned status: {status}"
+                        })
+
+                        # Exit polling since it failed
+                        break
+
+                except json.JSONDecodeError as json_error:
+                    print(f"Error parsing JSON from task status: {str(json_error)}")
+
+            elif response.status_code == 404:
+                print(f"Task not found, will continue polling: {task_id}")
+
+            else:
+                print(f"Failed to get task status: {response.status_code}")
+
+        except Exception as e:
+            print(f"Error checking track status: {str(e)}")
+
+        # Wait before the next polling attempt
+        attempt += 1
+
+        # Exponential backoff - increase wait time gradually
+        wait_time = min(wait_time * 1.5, 15)  # Cap at 15 seconds
+        await asyncio.sleep(wait_time)
+
+    # After all attempts, check if we have a valid track_url
+    if not track_url or not track_url.endswith('.mp3'):
+        print(f"Failed to get track URL after {max_attempts} attempts")
+
+        # Use fallback URL for failures
+        fallback_url = "https://filesamples.com/samples/audio/mp3/sample3.mp3"
+
+        # Notify client that we're using a fallback
+        await manager.send_message(client_id, {
+            "type": "track_fallback",
+            "task_id": task_id,
+            "track_id": track_id,
+            "track_url": fallback_url,
+            "status": "fallback",
+            "message": f"Using fallback track after {max_attempts} polling attempts"
+        })
+
+    # Clean up the task from our tracking dictionary
+    if task_id in polling_tasks:
+        del polling_tasks[task_id]
+        print(f"Removed polling task for {task_id}")
+
+# Helper function to start background polling task
+def start_background_polling(task_id: str, track_id: str, client_id: str, genre: str, topic: str):
+    """Start a background task to poll for track completion."""
+    if task_id in polling_tasks:
+        print(f"Polling already in progress for task: {task_id}")
+        return
+
+    task = asyncio.create_task(poll_for_track_completion(task_id, track_id, client_id, genre, topic))
+    polling_tasks[task_id] = task
+    print(f"Started background polling task for task_id: {task_id}")
+
+    # Add a done callback to handle exceptions and cleanup
+    def handle_task_done(t):
+        try:
+            t.result()  # This will raise any exceptions that occurred
+        except asyncio.CancelledError:
+            print(f"Polling task was cancelled for task_id: {task_id}")
+        except Exception as e:
+            print(f"Error in polling task for task_id: {task_id}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    task.add_done_callback(handle_task_done)
 
 # Configure CORS
 app.add_middleware(
@@ -26,6 +220,17 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
+
+# WebSocket endpoint for music generation notifications
+@app.websocket("/ws/music/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    await manager.connect(websocket, client_id)
+    try:
+        while True:
+            # Keep the connection alive with ping-pong
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(client_id)
 
 # Mount static files directory for testing
 import os
@@ -486,8 +691,9 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         # Check if we have a preview URL immediately (unlikely but possible)
         preview_url = data.get("previewUrl")
         
-        # If poll_for_completion is True, wait for the track to be ready
-        if poll_for_completion and track_id:
+        # We'll use a separate async function for polling and return immediately
+        # without waiting (non-blocking). The WebSocket will notify when ready.
+        if track_id:
             # For test mode, we already have a completed track
             if is_test_mode:
                 print("TEST MODE: Track is already complete, skipping polling")
@@ -495,44 +701,10 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 if not preview_url or not preview_url.endswith('.mp3'):
                     preview_url = "https://filesamples.com/samples/audio/mp3/sample3.mp3"
             else:
-                max_attempts = 10
-                attempt = 0
-                wait_time = 3  # Initial wait time in seconds
-                
-                while attempt < max_attempts and (not preview_url or not preview_url.endswith('.mp3')):
-                    print(f"Polling for track completion, attempt {attempt+1}/{max_attempts}")
-                    time.sleep(wait_time)
-                    
-                    # Exponential backoff - increase wait time gradually
-                    wait_time = min(wait_time * 1.5, 15)  # Cap at 15 seconds
-                    
-                    # Check track status
-                    try:
-                        status_response = requests.get(
-                            f"https://api.beatoven.ai/v1/tracks/{track_id}",
-                            headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"}
-                        )
-                        
-                        if status_response.status_code == 200:
-                            track_data = status_response.json()
-                            status = track_data.get("status")
-                            preview_url = track_data.get("previewUrl")
-                            
-                            print(f"Track status: {status}, Preview URL: {preview_url}")
-                            
-                            if status == "COMPLETED" and preview_url and preview_url.endswith('.mp3'):
-                                print("Track is ready!")
-                                break
-                            elif status in ["FAILED", "ERROR"]:
-                                print(f"Track generation failed with status: {status}")
-                                break
-                        else:
-                            print(f"Failed to get track status: {status_response.status_code}")
-                    
-                    except Exception as e:
-                        print(f"Error checking track status: {str(e)}")
-                    
-                    attempt += 1
+                # Note: We are no longer doing polling in this synchronous function
+                # Instead, we'll start a background task for polling
+                print(f"Starting background polling task for track_id: {track_id} and task_id: {task_id}")
+                # The actual polling will be handled by an async task
         
         # If no preview URL yet, use the track page URL
         if not preview_url:
@@ -2303,7 +2475,7 @@ class MusicGenerationResponse(BaseModel):
     lyrics: Optional[str] = None
     
 @app.post("/api/music/generate", response_model=MusicGenerationResponse)
-async def generate_music_endpoint(request: MusicGenerationRequest):
+async def generate_music_endpoint(request: MusicGenerationRequest, client_id: Optional[str] = None):
     """Generate music using Beatoven.ai with specified genre and prompt"""
     try:
         if not BEATOVEN_API_KEY:
@@ -2311,23 +2483,35 @@ async def generate_music_endpoint(request: MusicGenerationRequest):
                 status_code=500,
                 detail="Beatoven API key is required but not configured"
             )
-        
+
         print("===== GENERATE MUSIC REQUEST =====")
         print(f"Genre: {request.genre}")
         print(f"Topic: {request.topic}")
         print(f"Duration: {request.duration} seconds")
         print(f"Test mode: {request.test_mode}")
-        
+        print(f"Client ID for WebSocket: {client_id}")
+
         try:
-            # Use the generate_music function with polling enabled
+            # Use the generate_music function WITHOUT polling - we'll handle polling separately
             result = generate_music(
                 genre=request.genre,
                 duration=request.duration,
                 topic=request.topic,
                 prompt=request.custom_prompt,
-                poll_for_completion=True,  # Try to wait for the track to complete
+                poll_for_completion=False,  # Don't wait in the synchronous function
                 test_mode=request.test_mode  # Pass the test mode flag from the request
             )
+
+            # Start background polling task if task_id and client_id are provided
+            if result.get("task_id") and client_id:
+                # Start the background polling task
+                start_background_polling(
+                    task_id=result["task_id"],
+                    track_id=result.get("track_id", ""),
+                    client_id=client_id,
+                    genre=request.genre,
+                    topic=request.topic
+                )
         except json.JSONDecodeError as json_error:
             # Handle JSON parsing errors from the Beatoven API
             print(f"JSON decode error in generate_music: {str(json_error)}")

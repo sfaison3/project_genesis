@@ -245,7 +245,8 @@ export default {
       isLoading: false,
       isGenerating: false,
       generationStatus: null, // null, 'started', 'processing', 'completed', 'error'
-      pollingInterval: null,
+      websocket: null,
+      clientId: null, // Unique client ID for WebSocket
       taskId: null,
       showMoreGenres: false,
       lyricsExpanded: true,
@@ -340,9 +341,124 @@ export default {
     // Check API health every 30 seconds
     setInterval(this.checkApiHealth, 30000)
 
+    // Generate a unique client ID for this session
+    this.clientId = 'client_' + Date.now() + '_' + Math.random().toString(36).substring(2, 15)
+    console.log('Client ID for WebSocket:', this.clientId)
+
+    // Connect to WebSocket
+    this.connectWebSocket()
+  },
+
+  beforeUnmount() {
+    // Close WebSocket connection when component is destroyed
+    if (this.websocket) {
+      this.websocket.close()
+    }
   },
 
   methods: {
+    connectWebSocket() {
+      // Create WebSocket connection using our client ID
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const baseUrl = this.apiUrl.replace(/^https?:\/\//, '')
+      const wsUrl = `${protocol}//${baseUrl}/ws/music/${this.clientId}`
+
+      console.log('Connecting to WebSocket:', wsUrl)
+
+      this.websocket = new WebSocket(wsUrl)
+
+      this.websocket.onopen = () => {
+        console.log('WebSocket connection established')
+      }
+
+      this.websocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          console.log('WebSocket message received:', data)
+
+          if (data.type === 'track_ready') {
+            // Track is ready with a URL
+            console.log('Track is ready! URL:', data.track_url)
+
+            // Update audio URL and play
+            this.audioUrl = data.track_url
+            this.generationStatus = 'completed'
+            this.isGenerating = false
+
+            // Start playback of the new track
+            this.$nextTick(() => {
+              const player = this.$refs.audioPlayer
+              if (player) {
+                player.load()
+                setTimeout(() => {
+                  try {
+                    this.isPlaying = true
+                    player.play().catch(err => {
+                      console.error('Error auto-playing:', err)
+                      this.isPlaying = false
+                    })
+                  } catch (playError) {
+                    console.error('Exception during play():', playError)
+                    this.isPlaying = false
+                  }
+                }, 500)
+              }
+            })
+          }
+          else if (data.type === 'track_failed' || data.type === 'track_fallback') {
+            // Track generation failed or fallback
+            console.warn(`${data.type === 'track_failed' ? 'Track generation failed' : 'Using fallback track'}:`, data.message || data.error)
+
+            // Use the fallback track URL if provided
+            if (data.track_url) {
+              this.audioUrl = data.track_url
+              this.generationStatus = 'completed'
+              this.isGenerating = false
+
+              // Start playback of the fallback track
+              this.$nextTick(() => {
+                const player = this.$refs.audioPlayer
+                if (player) {
+                  player.load()
+                  setTimeout(() => {
+                    try {
+                      this.isPlaying = true
+                      player.play().catch(() => {})
+                    } catch (e) {}
+                  }, 500)
+                }
+              })
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing WebSocket message:', e)
+        }
+      }
+
+      this.websocket.onclose = (event) => {
+        console.log('WebSocket connection closed:', event.code, event.reason)
+
+        // Attempt to reconnect after a delay
+        setTimeout(() => {
+          if (this.isGenerating) {
+            console.log('Reconnecting WebSocket...')
+            this.connectWebSocket()
+          }
+        }, 5000)
+      }
+
+      this.websocket.onerror = (error) => {
+        console.error('WebSocket error:', error)
+      }
+
+      // Ping to keep connection alive
+      setInterval(() => {
+        if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+          this.websocket.send('ping')
+        }
+      }, 30000)
+    },
+
     selectGenre(genreId) {
       console.log(`Genre selected: ${genreId}`)
       // Force a refresh of the selection by clearing it first
@@ -436,14 +552,14 @@ export default {
         
         // Standard JSON request - format depends on which endpoint we're using
         let requestBody;
-        
+
         // Find the currently selected genre's name from our genres list
         const selectedGenreName = this.genres.find(g => g.id === this.selectedGenre)?.name || this.selectedGenre;
-        
+
         // Log the selected genre details for debugging
         console.log(`\nSelected genre ID: ${this.selectedGenre}`)
         console.log(`Selected genre name: ${selectedGenreName}`)
-        
+
         // Create a custom prompt that includes the selected genre
         const customPrompt = `Create a ${selectedGenreName} style music about ${this.learningTopic}. Make sure the music has a strong ${selectedGenreName} feel and sound.`;
 
@@ -466,6 +582,10 @@ export default {
             test_mode: true, // Use test mode to ensure we get a response
             custom_prompt: customPrompt // Add the custom prompt here
           };
+        }
+
+        // Add client_id as query parameter for WebSocket notifications
+        endpoint = `${endpoint}?client_id=${this.clientId}`;
         }
         
         if (this.uploadedFile) {
@@ -583,10 +703,10 @@ export default {
     
     handleApiResponse(data) {
       console.log('Processing API response:', data);
-      
+
       // Use a sample audio URL if we need a fallback
       const sampleAudioUrl = 'https://filesamples.com/samples/audio/mp3/sample3.mp3';
-      
+
       try {
         // Safeguard against null or undefined data
         if (!data) {
@@ -597,7 +717,7 @@ export default {
             lyrics: `This is a fallback song about ${this.learningTopic}.`
           };
         }
-        
+
         // Handle the music generation response - check for different formats
         if (data.type === 'music') {
           // This is from the /api/generate endpoint format
@@ -610,39 +730,67 @@ export default {
           if (data.album_art) {
             this.albumArt = data.album_art
           }
-        } else if (data.track_url || data.output_url) {
+        } else if (data.task_id || data.output_url) {
           // This is from the /api/music/generate endpoint format
-          // IMPORTANT: Prioritize track_url over output_url
-          console.log('Using track_url from response:', data.track_url);
-          console.log('Response output_url value:', data.output_url);
-
-          // Always prioritize track_url over output_url
-          this.audioUrl = data.track_url || data.output_url || sampleAudioUrl
-
-          if (this.audioUrl === data.track_url) {
-            console.log('Using track_url for audio playback');
-          } else if (this.audioUrl === data.output_url) {
-            console.warn('Falling back to output_url - track_url was not available');
-          }
+          // Store information about the track being generated
           this.songTitle = data.title || `Song about ${this.learningTopic}`
           this.lyrics = data.lyrics || 'Lyrics not available for this song.'
           // Find genre display name
           const genreName = this.genres.find(g => g.id === data.genre)?.name || data.genre || 'AI';
           this.songDescription = `${genreName} music about ${this.learningTopic}`
-          
-          // Store the task_id for polling
+
+          // Store the task_id for reference - the server will poll
           if (data.task_id) {
-            console.log('Task ID for tracking:', data.task_id)
-            // If needed, we could poll the status endpoint with this task_id
+            console.log('Task ID for server polling:', data.task_id)
+            this.taskId = data.task_id
+            this.generationStatus = 'processing'
+
+            // DON'T immediately set audioUrl - we'll get that from WebSocket
+            // Instead, show loading state until WebSocket tells us it's ready
+            this.isGenerating = true
+          } else {
+            // No task_id means we should try to use output_url if available
+            if (data.output_url) {
+              this.audioUrl = data.output_url
+              this.isGenerating = false
+
+              // Start playback if we have a direct URL
+              this.$nextTick(() => {
+                const player = this.$refs.audioPlayer
+                if (player) {
+                  console.log('Loading audio from output_url:', this.audioUrl)
+                  player.load()
+
+                  // Auto-play after a short delay to ensure loading
+                  setTimeout(() => {
+                    try {
+                      this.isPlaying = true
+                      player.play().catch(err => {
+                        console.error('Error auto-playing:', err)
+                        this.isPlaying = false
+                      })
+                    } catch (playError) {
+                      console.error('Exception during play():', playError)
+                      this.isPlaying = false
+                    }
+                  }, 500)
+                }
+              })
+            } else {
+              // We have neither task_id nor output_url - use fallback
+              console.warn('No task_id or output_url in response')
+              this.audioUrl = sampleAudioUrl
+              this.isGenerating = false
+            }
           }
         } else {
           // Unknown format - log it and try to extract useful information
           console.warn('Unknown API response format:', data);
-          
-          // Try to extract audio URL from any reasonable field - prioritize track_url
+
+          // Try to extract audio URL from any reasonable field
           this.audioUrl = data.track_url || data.output_url || data.preview_url ||
                          data.url || data.output || data.audio || sampleAudioUrl
-          
+
           this.songTitle = data.title || data.name || `Song about ${this.learningTopic}`
           this.lyrics = data.lyrics || 'Lyrics not available for this song.'
           // Find genre display name if a genre is provided
@@ -652,46 +800,28 @@ export default {
             genreDescription = `${genreName} music about ${this.learningTopic}`;
           }
           this.songDescription = data.description || genreDescription
-        }
-        
-        // Check if we have a valid URL format
-        if (!this.audioUrl || !this.audioUrl.startsWith('http')) {
-          console.warn('Invalid audio URL:', this.audioUrl);
-          this.audioUrl = sampleAudioUrl;
-        }
-        
-        // End the generating state
-        this.isGenerating = false;
 
-        // Only proceed with playback if we have a valid audio URL
-        if (this.audioUrl) {
-          // Start playback when ready
+          // End generating state since we're using fallback
+          this.isGenerating = false
+
+          // Start playback of fallback
           this.$nextTick(() => {
             const player = this.$refs.audioPlayer
             if (player) {
-              console.log('Loading audio from URL:', this.audioUrl)
               player.load()
-              
-              // Auto-play after a short delay to ensure loading
               setTimeout(() => {
                 try {
                   this.isPlaying = true
-                  player.play().catch(err => {
-                    console.error('Error auto-playing:', err)
-                    this.isPlaying = false
-                  })
-                } catch (playError) {
-                  console.error('Exception during play():', playError)
-                  this.isPlaying = false
-                }
+                  player.play().catch(() => {})
+                } catch (e) {}
               }, 500)
-            } else {
-              console.error('Audio player element not found')
             }
           })
-        } else {
-          console.error('No audio URL found in the response');
-          alert('No audio URL was returned from the server. Using sample audio instead.');
+        }
+
+        // Check if we have a valid URL format for direct URLs
+        if (this.audioUrl && !this.isGenerating && !this.audioUrl.startsWith('http')) {
+          console.warn('Invalid audio URL:', this.audioUrl);
           this.audioUrl = sampleAudioUrl;
         }
       } catch (error) {
@@ -701,7 +831,7 @@ export default {
         this.songTitle = `Song about ${this.learningTopic} (Error Recovery)`;
         this.lyrics = 'Lyrics not available due to an error processing the server response.';
         this.songDescription = 'AI-generated music (fallback)';
-        
+
         // End the generating state
         this.isGenerating = false;
 
@@ -712,6 +842,7 @@ export default {
             player.load()
             setTimeout(() => {
               try {
+                this.isPlaying = true
                 player.play().catch(() => {})
               } catch (e) {}
             }, 500)
@@ -808,6 +939,39 @@ export default {
       this.isLooping = !this.isLooping
       if (this.$refs.audioPlayer) {
         this.$refs.audioPlayer.loop = this.isLooping
+      }
+    },
+
+    getPreloaderMessage() {
+      // Different messages based on generation status
+      const processingMessages = [
+        "Composing an educational masterpiece...",
+        "Mixing beats with knowledge...",
+        "Turning facts into lyrics...",
+        "Crafting a catchy educational tune...",
+        "Harmonizing learning with music...",
+        "Writing smart lyrics about your topic...",
+        "Creating rhythmic learning patterns...",
+        "Infusing music with educational content...",
+        "Your custom learning song is in progress...",
+        "Translating your topic into musical knowledge...",
+        "The server is polling for your track completion...",
+        "Waiting for Beatoven API to complete your track...",
+        "Your track is being generated in the cloud..."
+      ]
+
+      const initialMessages = [
+        "Connecting to music generation service...",
+        "Setting up your music request...",
+        "Preparing your educational song...",
+        "Initializing music generation..."
+      ]
+
+      // Use appropriate message set based on state
+      if (this.generationStatus === 'processing') {
+        return processingMessages[Math.floor(Math.random() * processingMessages.length)]
+      } else {
+        return initialMessages[Math.floor(Math.random() * initialMessages.length)]
       }
     },
 
