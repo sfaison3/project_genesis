@@ -251,6 +251,9 @@ export default {
       showMoreGenres: false,
       lyricsExpanded: true,
       usingGenericEndpoint: false, // Track which endpoint we're using
+      pollingInterval: null, // To store the interval ID for track status polling
+      pollingAttempts: 0, // Count polling attempts
+      maxPollingAttempts: 30, // Maximum number of polling attempts
       // Song/music data
       songTitle: 'Song Title',
       songDescription: 'The why, and how this will benefit you',
@@ -354,6 +357,9 @@ export default {
     if (this.websocket) {
       this.websocket.close()
     }
+
+    // Stop any active polling
+    this.stopPolling()
   },
 
   methods: {
@@ -798,6 +804,138 @@ export default {
       }
     },
     
+    // Poll the track status endpoint
+    pollTrackStatus() {
+      if (!this.taskId) {
+        console.error('Cannot poll track status: No task ID available');
+        return;
+      }
+
+      console.log(`Starting to poll track status for task ID: ${this.taskId}`);
+      this.pollingAttempts = 0;
+
+      // Clear any existing interval
+      if (this.pollingInterval) {
+        clearInterval(this.pollingInterval);
+      }
+
+      // Set up polling interval
+      this.pollingInterval = setInterval(() => {
+        this.checkTrackStatus();
+      }, 5000); // Poll every 5 seconds
+    },
+
+    async checkTrackStatus() {
+      if (!this.taskId) {
+        this.stopPolling();
+        return;
+      }
+
+      this.pollingAttempts++;
+      console.log(`Polling attempt ${this.pollingAttempts}/${this.maxPollingAttempts} for task: ${this.taskId}`);
+
+      // Stop polling if we've reached the maximum number of attempts
+      if (this.pollingAttempts >= this.maxPollingAttempts) {
+        console.warn(`Maximum polling attempts (${this.maxPollingAttempts}) reached. Stopping polling.`);
+        this.stopPolling();
+        return;
+      }
+
+      try {
+        // Construct the API endpoint URL
+        const endpoint = `${this.apiUrl}/music/track/${this.taskId}`;
+        console.log(`Polling track status from: ${endpoint}`);
+
+        // Make the request
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          console.error(`Error polling track status: ${response.status} ${response.statusText}`);
+          return;
+        }
+
+        const data = await response.json();
+        console.log('Track status response:', data);
+
+        // Check if track URL is available
+        if (data.preview_url || data.track_url) {
+          const trackUrl = data.preview_url || data.track_url;
+          console.log(`Track URL is available: ${trackUrl}`);
+
+          // We have a URL! Stop polling
+          this.stopPolling();
+
+          // Update UI and play the track
+          this.audioUrl = trackUrl;
+          this.generationStatus = 'completed';
+          this.isGenerating = false;
+
+          // Start playback
+          this.playTrack(trackUrl);
+        } else if (data.status === 'failed' || data.status === 'error') {
+          console.error(`Track generation failed: ${data.message || 'Unknown error'}`);
+          this.stopPolling();
+          this.generationStatus = 'error';
+          this.isGenerating = false;
+        } else {
+          console.log(`Track is still processing. Status: ${data.status}`);
+        }
+      } catch (error) {
+        console.error('Error polling track status:', error);
+      }
+    },
+
+    stopPolling() {
+      if (this.pollingInterval) {
+        console.log('Stopping track status polling');
+        clearInterval(this.pollingInterval);
+        this.pollingInterval = null;
+      }
+    },
+
+    playTrack(url) {
+      console.log(`Playing track from URL: ${url}`);
+
+      this.$nextTick(() => {
+        const player = this.$refs.audioPlayer;
+        if (player) {
+          console.log('Audio player found, current src:', player.src);
+
+          // Force reload with new URL
+          player.pause();
+          player.src = url;
+          player.load();
+
+          setTimeout(() => {
+            try {
+              console.log('Attempting to play audio after loading');
+              this.isPlaying = true;
+              const playPromise = player.play();
+
+              if (playPromise) {
+                playPromise
+                  .then(() => console.log('Audio playback started successfully'))
+                  .catch(err => {
+                    console.error('Error auto-playing:', err);
+                    this.isPlaying = false;
+                  });
+              }
+            } catch (playError) {
+              console.error('Exception during play():', playError);
+              this.isPlaying = false;
+            }
+          }, 1000);
+        } else {
+          console.error('Audio player element not found');
+        }
+      });
+    },
+
     handleApiResponse(data) {
       console.log('Processing API response:', data);
 
@@ -836,15 +974,18 @@ export default {
           const genreName = this.genres.find(g => g.id === data.genre)?.name || data.genre || 'AI';
           this.songDescription = `${genreName} music about ${this.learningTopic}`
 
-          // Store the task_id for reference - the server will poll
+          // Store the task_id for reference and initiate polling
           if (data.task_id) {
-            console.log('Task ID for server polling:', data.task_id)
+            console.log('Task ID for client-side polling:', data.task_id)
             this.taskId = data.task_id
             this.generationStatus = 'processing'
-
-            // DON'T immediately set audioUrl - we'll get that from WebSocket
-            // Instead, show loading state until WebSocket tells us it's ready
             this.isGenerating = true
+
+            // Start polling for track status
+            console.log('Starting client-side polling for track completion')
+            this.pollTrackStatus()
+
+            // WebSocket will also notify us, but we'll poll as a backup
           } else {
             // No task_id means we should try to use output_url if available
             if (data.output_url) {
