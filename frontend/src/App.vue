@@ -586,8 +586,7 @@ export default {
 
         // Add client_id as query parameter for WebSocket notifications
         endpoint = `${endpoint}?client_id=${this.clientId}`;
-        }
-        
+
         if (this.uploadedFile) {
           console.log('File upload will be handled in a future version')
           // For now, just note the file but don't try to upload it
