@@ -373,8 +373,9 @@ export default {
 
       this.websocket.onmessage = (event) => {
         try {
+          console.log('Raw WebSocket message received:', event.data)
           const data = JSON.parse(event.data)
-          console.log('WebSocket message received:', data)
+          console.log('Parsed WebSocket message:', data)
 
           if (data.type === 'track_ready') {
             // Track is ready with a URL
@@ -385,23 +386,60 @@ export default {
             this.generationStatus = 'completed'
             this.isGenerating = false
 
+            // Log audio element state for debugging
+            console.log('Audio player before load:', this.$refs.audioPlayer ? 'Found' : 'Not found')
+
             // Start playback of the new track
             this.$nextTick(() => {
+              console.log('Inside nextTick after track ready')
               const player = this.$refs.audioPlayer
               if (player) {
+                console.log('Audio player found, current src:', player.src)
+
+                // Force a new source URL to ensure reloading
+                player.pause()
+                player.src = data.track_url
+
+                // Add event listeners for debugging
+                const onLoadedData = () => {
+                  console.log('Audio loaded data event fired')
+                  player.removeEventListener('loadeddata', onLoadedData)
+                }
+                player.addEventListener('loadeddata', onLoadedData)
+
+                const onError = (e) => {
+                  console.error('Audio loading error:', e)
+                  player.removeEventListener('error', onError)
+                }
+                player.addEventListener('error', onError)
+
+                // Load and play with longer timeout
+                console.log('Attempting to load audio from:', data.track_url)
                 player.load()
+
                 setTimeout(() => {
                   try {
+                    console.log('Attempting to play audio after timeout')
                     this.isPlaying = true
-                    player.play().catch(err => {
-                      console.error('Error auto-playing:', err)
-                      this.isPlaying = false
-                    })
+                    const playPromise = player.play()
+
+                    if (playPromise) {
+                      playPromise
+                        .then(() => console.log('Audio playback started successfully'))
+                        .catch(err => {
+                          console.error('Error auto-playing:', err)
+                          this.isPlaying = false
+                        })
+                    } else {
+                      console.warn('Play did not return a promise, browser may be handling playback differently')
+                    }
                   } catch (playError) {
                     console.error('Exception during play():', playError)
                     this.isPlaying = false
                   }
-                }, 500)
+                }, 1000) // Longer timeout for more reliable playback
+              } else {
+                console.error('Audio player element not found after track ready')
               }
             })
           }
@@ -417,15 +455,42 @@ export default {
 
               // Start playback of the fallback track
               this.$nextTick(() => {
+                console.log('Inside nextTick for fallback track')
                 const player = this.$refs.audioPlayer
                 if (player) {
+                  console.log('Fallback: Audio player found, current src:', player.src)
+
+                  // Force a new source URL to ensure reloading
+                  player.pause()
+                  player.src = data.track_url
+
+                  // Add event listeners for debugging
+                  const onLoadedData = () => {
+                    console.log('Fallback: Audio loaded data event fired')
+                    player.removeEventListener('loadeddata', onLoadedData)
+                  }
+                  player.addEventListener('loadeddata', onLoadedData)
+
+                  // Load and play with longer timeout
+                  console.log('Fallback: Attempting to load audio from:', data.track_url)
                   player.load()
+
                   setTimeout(() => {
+                    console.log('Fallback: Attempting to play audio after timeout')
+                    this.isPlaying = true
                     try {
-                      this.isPlaying = true
-                      player.play().catch(() => {})
-                    } catch (e) {}
-                  }, 500)
+                      const playPromise = player.play()
+                      if (playPromise) {
+                        playPromise
+                          .then(() => console.log('Fallback: Audio playback started successfully'))
+                          .catch(err => console.error('Fallback: Error auto-playing:', err))
+                      }
+                    } catch (e) {
+                      console.error('Fallback: Exception during play:', e)
+                    }
+                  }, 1000)
+                } else {
+                  console.error('Fallback: Audio player element not found')
                 }
               })
             }

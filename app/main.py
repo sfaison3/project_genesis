@@ -77,10 +77,30 @@ async def poll_for_track_completion(task_id: str, track_id: str, client_id: str,
 
     print(f"Starting polling for track: {track_id}, task: {task_id}, client: {client_id}")
 
-    max_attempts = 60  # More attempts than before, as we can afford to wait longer
+    # Reduce polling frequency but keep total duration similar
+    max_attempts = 20  # Fewer attempts with longer waits
     attempt = 0
-    wait_time = 3  # Initial wait time in seconds
+    wait_time = 8  # 8 seconds between polling attempts
     track_url = None
+
+    # For test tasks, we should just provide a fallback immediately
+    if task_id.startswith("test-") or task_id.startswith("fallback-"):
+        print(f"Using immediate fallback for test task: {task_id}")
+        fallback_url = "https://filesamples.com/samples/audio/mp3/sample3.mp3"
+
+        # Notify client via WebSocket
+        await manager.send_message(client_id, {
+            "type": "track_ready",
+            "task_id": task_id,
+            "track_id": track_id,
+            "track_url": fallback_url,
+            "status": "completed",
+            "genre": genre,
+            "topic": topic
+        })
+
+        # Exit early - no need to poll for test tasks
+        return
 
     # Continue polling until we have a valid track_url or reach max attempts
     while attempt < max_attempts and (not track_url or not track_url.endswith('.mp3')):
