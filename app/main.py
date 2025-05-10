@@ -76,6 +76,9 @@ async def poll_for_track_completion(task_id: str, track_id: str, client_id: str,
         return
 
     print(f"Starting polling for track: {track_id}, task: {task_id}, client: {client_id}")
+    print(f">>> DEBUG - TASK_ID FORMAT CHECK: '{task_id}'")
+    # Removed the misleading test task check that was causing problems
+    print(f">>> Task ID starts with: '{task_id[:10]}'")
 
     # Reduce polling frequency but keep total duration similar
     max_attempts = 20  # Fewer attempts with longer waits
@@ -83,9 +86,13 @@ async def poll_for_track_completion(task_id: str, track_id: str, client_id: str,
     wait_time = 8  # 8 seconds between polling attempts
     track_url = None
 
-    # For test tasks, we should just provide a fallback immediately
-    if task_id.startswith("test-") or task_id.startswith("fallback-"):
-        print(f"Using immediate fallback for test task: {task_id}")
+    # We won't check for test- prefix anymore, only for fallback- prefix
+    # The frontend is now setting test_mode: false explicitly
+    print(f">>> Checking track ID: '{task_id}'")
+
+    # Only fall back immediately for fallback- prefixed tasks
+    if task_id.startswith("fallback-"):
+        print(f"Using immediate fallback for fallback task: {task_id}")
         fallback_url = "https://filesamples.com/samples/audio/mp3/sample3.mp3"
 
         # Notify client via WebSocket
@@ -101,6 +108,7 @@ async def poll_for_track_completion(task_id: str, track_id: str, client_id: str,
 
         # Exit early - no need to poll for test tasks
         return
+    # Regular tasks (even if created with is_test_mode=true but with the new format) should be polled normally
 
     # Continue polling until we have a valid track_url or reach max attempts
     while attempt < max_attempts and (not track_url or not track_url.endswith('.mp3')):
@@ -108,12 +116,13 @@ async def poll_for_track_completion(task_id: str, track_id: str, client_id: str,
 
         try:
             # Check if task_id contains an underscore (format UUID_number)
-            endpoint = f"https://api.beatoven.ai/v1/tasks/{task_id}"
+            endpoint = f"https://public-api.beatoven.ai/api/v1/tasks/{task_id}"
 
-            # For test tasks, respond more quickly with fallbacks
-            if task_id.startswith("test-") or task_id.startswith("fallback-"):
-                if attempt >= 2:  # Fail faster for test tasks
-                    print(f"Test task taking too long, using fallback URL: {task_id}")
+            # MODIFIED: Only use fallback for fallback- prefixed tasks
+            # Let test- prefixed tasks go through normal polling
+            if task_id.startswith("fallback-"):
+                if attempt >= 2:  # Fail faster for fallback tasks
+                    print(f"Fallback task taking too long, using fallback URL: {task_id}")
                     track_url = "https://filesamples.com/samples/audio/mp3/sample3.mp3"
                     break
 
@@ -431,6 +440,7 @@ def get_beatoven_genres():
     ]
 
 def generate_music(genre: str, duration: int, topic: str, prompt: str = None, poll_for_completion: bool = False, test_mode: bool = False):
+    print(f">>> DEBUG - generate_music called with test_mode={test_mode}")
     print(f"\n===== MUSIC GENERATION REQUEST =====\nGenre requested: {genre}\nTopic: {topic}\nDuration: {duration} seconds\nCustom prompt provided: {'Yes' if prompt else 'No'}\n===================================\n")
     """Generate music using Beatoven.ai API"""
     # https://github.com/Beatoven/public-api/blob/main/docs/api-spec.md
@@ -442,7 +452,8 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         )
 
     # ONLY use test mode if explicitly requested via query parameter
-    is_test_mode = test_mode and test_mode == True
+    is_test_mode = test_mode is True  # Stricter comparison to ensure only True (not truthy values) activates test mode
+    print(f">>> DEBUG - is_test_mode evaluation: input={test_mode}, result={is_test_mode}")
 
     # Log whether we're using test mode or live API
     if is_test_mode:
@@ -521,8 +532,10 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
         # For test mode, use a mock response instead of making an actual API call
         if is_test_mode:
             print("TEST MODE: Using mock Beatoven.ai response")
-            mock_track_id = f"test-track-{genre}-{int(time.time())}"
-            mock_task_id = f"test-task-{genre}-{int(time.time())}"
+            # Use a completely different prefix for test mode than what's checked in the polling function
+            # This ensures we don't trigger any special logic based on naming
+            mock_track_id = f"mock-track-{genre}-{int(time.time())}"
+            mock_task_id = f"mock-task-{genre}-{int(time.time())}"
             mock_response = {
                 "status": 200,
                 "json": lambda: {
@@ -562,7 +575,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 # Make the actual API request with explicit timeout
                 # First, print the full request details for analysis
                 print("\n===== BEATOVEN.AI API REQUEST =====")
-                print(f"Endpoint: https://api.beatoven.ai/v1/tracks/compose")
+                print(f"Endpoint: https://public-api.beatoven.ai/api/v1/tracks/compose")
                 print(f"Headers: Authorization: Bearer {BEATOVEN_API_KEY[:5]}... (truncated for security)")
                 print(f"Request Body (JSON):")
                 print(json.dumps(payload, indent=2))
@@ -570,7 +583,7 @@ def generate_music(genre: str, duration: int, topic: str, prompt: str = None, po
                 
                 # Now make the actual API request to the compose endpoint
                 response = requests.post(
-                    "https://api.beatoven.ai/v1/tracks/compose",
+                    "https://public-api.beatoven.ai/api/v1/tracks/compose",
                     headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}", "Content-Type": "application/json"},
                     json=payload,
                     timeout=10  # Add explicit timeout to avoid hanging request
@@ -2232,7 +2245,8 @@ async def get_music_task(task_id: str, test_mode: bool = False):
         )
 
     # ONLY use test mode if explicitly requested via query parameter
-    is_test_mode = test_mode and test_mode == True
+    is_test_mode = test_mode is True  # Stricter comparison to ensure only True (not truthy values) activates test mode
+    print(f">>> DEBUG - is_test_mode evaluation: input={test_mode}, result={is_test_mode}")
 
     # Log task request
     print(f"===== TASK STATUS REQUEST =====")
@@ -2243,9 +2257,9 @@ async def get_music_task(task_id: str, test_mode: bool = False):
         print("⚠️ USING TEST MODE for task status - This should ONLY happen in development")
     
     try:
-        # ONLY use test mode if explicitly requested, or for clearly marked test/fallback IDs
+        # ONLY use test mode if explicitly requested, or for clearly marked fallback IDs
         if (is_test_mode or task_id.startswith("fallback-")):
-            
+
             print(f"Using mock task status response for {task_id}")
             
             # Parse genre from task ID (if available)
@@ -2299,7 +2313,7 @@ async def get_music_task(task_id: str, test_mode: bool = False):
                 print(f"Using base ID: {base_id}")
                 
                 response = requests.get(
-                    f"https://api.beatoven.ai/v1/tasks/{task_id}",
+                    f"https://public-api.beatoven.ai/api/v1/tasks/{task_id}",
                     headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"},
                     timeout=10  # Add explicit timeout
                 )
@@ -2307,12 +2321,12 @@ async def get_music_task(task_id: str, test_mode: bool = False):
                 # Standard task ID
                 # Print task request details
                 print(f"\n===== BEATOVEN.AI TASK STATUS REQUEST =====")
-                print(f"Endpoint: https://api.beatoven.ai/v1/tasks/{task_id}")
+                print(f"Endpoint: https://public-api.beatoven.ai/api/v1/tasks/{task_id}")
                 print(f"Headers: Authorization: Bearer {BEATOVEN_API_KEY[:5]}... (truncated for security)")
                 print("==========================================\n")
                 
                 response = requests.get(
-                    f"https://api.beatoven.ai/v1/tasks/{task_id}",
+                    f"https://public-api.beatoven.ai/api/v1/tasks/{task_id}",
                     headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"},
                     timeout=10  # Add explicit timeout
                 )
@@ -2676,7 +2690,8 @@ async def get_track_status(track_id: str, test_mode: bool = False):
         )
 
     # ONLY use test mode if explicitly requested via query parameter
-    is_test_mode = test_mode and test_mode == True
+    is_test_mode = test_mode is True  # Stricter comparison to ensure only True (not truthy values) activates test mode
+    print(f">>> DEBUG - is_test_mode evaluation: input={test_mode}, result={is_test_mode}")
 
     if is_test_mode:
         print("⚠️ USING TEST MODE for track endpoint - This should ONLY happen in development")
@@ -2706,13 +2721,13 @@ async def get_track_status(track_id: str, test_mode: bool = False):
             try:
                 # Print track status request details
                 print(f"\n===== BEATOVEN.AI TRACK STATUS REQUEST =====")
-                print(f"Endpoint: https://api.beatoven.ai/v1/tracks/{track_id}")
+                print(f"Endpoint: https://public-api.beatoven.ai/api/v1/tracks/{track_id}")
                 print(f"Headers: Authorization: Bearer {BEATOVEN_API_KEY[:5]}... (truncated for security)")
                 print("===========================================\n")
                 
                 # Call Beatoven API to get track status with timeout
                 response = requests.get(
-                    f"https://api.beatoven.ai/v1/tracks/{track_id}",
+                    f"https://public-api.beatoven.ai/api/v1/tracks/{track_id}",
                     headers={"Authorization": f"Bearer {BEATOVEN_API_KEY}"},
                     timeout=10  # Add explicit timeout
                 )

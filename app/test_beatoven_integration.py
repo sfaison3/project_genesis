@@ -19,7 +19,7 @@ if not BEATOVEN_API_KEY:
     sys.exit(1)
 
 # API Configuration
-BASE_URL = "https://api.beatoven.ai/v1"
+BASE_URL = "https://public-api.beatoven.ai/api/v1"
 HEADERS = {
     "Authorization": f"Bearer {BEATOVEN_API_KEY}",
     "Content-Type": "application/json"

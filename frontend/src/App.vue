@@ -677,7 +677,7 @@ export default {
             topic: this.learningTopic,
             genre: this.selectedGenre,
             duration: 60,
-            test_mode: true, // Use test mode to ensure we get a response
+            test_mode: false, // Use the real API for production
             custom_prompt: customPrompt // Add the custom prompt here
           };
         }
