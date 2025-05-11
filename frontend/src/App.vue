@@ -842,8 +842,17 @@ export default {
       }
 
       try {
-        // Construct the API endpoint URL
-        const endpoint = `${this.apiUrl}/music/track/${this.taskId}`;
+        // Extract the track_id from the task_id if needed
+        // Format is often: UUID_number (e.g. "f717d947-8e60-43d4-9c33-dfc93ca0d453_1")
+        let trackId = this.taskId;
+        if (this.taskId && this.taskId.includes('_')) {
+          // Remove _1, _2, etc. suffix to get the track_id
+          trackId = this.taskId.split('_')[0];
+          console.log(`Extracted track_id ${trackId} from task_id ${this.taskId}`);
+        }
+
+        // Construct the API endpoint URL with track_id instead of task_id
+        const endpoint = `${this.apiUrl}/music/track/${trackId}`;
         console.log(`Polling track status from: ${endpoint}`);
 
         // Make the request
